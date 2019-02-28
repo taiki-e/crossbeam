@@ -17,6 +17,10 @@ lockfree = "0.5.1"
 mpmc = "0.1.5"
 
 [[bin]]
+name = "array_queue"
+path = "array_queue.rs"
+
+[[bin]]
 name = "atomicring"
 path = "atomicring.rs"
 
@@ -61,8 +65,8 @@ name = "mpsc"
 path = "mpsc.rs"
 
 [[bin]]
-name = "segqueue"
-path = "segqueue.rs"
+name = "seg_queue"
+path = "seg_queue.rs"
 
 [[bin]]
 name = "spsc"
