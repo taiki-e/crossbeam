@@ -58,8 +58,8 @@ fn spsc() {
 
     let q = SegQueue::new();
 
-    scope(|scope| {
-        scope.spawn(|_| {
+    scope(|s| {
+        s.spawn(|_| {
             for i in 0..COUNT {
                 loop {
                     if let Some(x) = q.pop() {
@@ -70,7 +70,7 @@ fn spsc() {
             }
             assert!(q.pop().is_none());
         });
-        scope.spawn(|_| {
+        s.spawn(|_| {
             for i in 0..COUNT {
                 q.push(i);
             }
@@ -87,9 +87,9 @@ fn mpmc() {
     let q = SegQueue::<usize>::new();
     let v = (0..COUNT).map(|_| AtomicUsize::new(0)).collect::<Vec<_>>();
 
-    scope(|scope| {
+    scope(|s| {
         for _ in 0..THREADS {
-            scope.spawn(|_| {
+            s.spawn(|_| {
                 for _ in 0..COUNT {
                     let n = loop {
                         if let Some(x) = q.pop() {
@@ -101,7 +101,7 @@ fn mpmc() {
             });
         }
         for _ in 0..THREADS {
-            scope.spawn(|_| {
+            s.spawn(|_| {
                 for i in 0..COUNT {
                     q.push(i);
                 }
@@ -137,14 +137,14 @@ fn drops() {
         DROPS.store(0, Ordering::SeqCst);
         let q = SegQueue::new();
 
-        scope(|scope| {
-            scope.spawn(|_| {
+        scope(|s| {
+            s.spawn(|_| {
                 for _ in 0..steps {
                     while q.pop().is_none() {}
                 }
             });
 
-            scope.spawn(|_| {
+            s.spawn(|_| {
                 for _ in 0..steps {
                     q.push(DropCounter);
                 }

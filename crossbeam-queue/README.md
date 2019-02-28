@@ -16,12 +16,14 @@ This crate provides concurrent queues that can be shared among threads:
 
 * [`ArrayQueue`], a bounded MPMC queue that allocates a fixed-capacity buffer on construction.
 * [`SegQueue`], an unbounded MPMC queue that allocates small buffers, segments, on demand.
+* [`spsc`], a bounded SPSC queue that allocates a fixed-capacity buffer on construction.
 
 Everything in this crate can be used in `no_std` environments, provided that `alloc` feature is
 enabled.
 
 [`ArrayQueue`]: https://docs.rs/crossbeam-queue/*/crossbeam_queue/struct.ArrayQueue.html
 [`SegQueue`]: https://docs.rs/crossbeam-queue/*/crossbeam_queue/struct.SegQueue.html
+[`spsc`]: https://docs.rs/crossbeam-queue/*/crossbeam_queue/fn.spsc.html
 
 ## Usage
 

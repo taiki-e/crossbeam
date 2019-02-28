@@ -88,8 +88,8 @@ fn len() {
     }
     assert_eq!(q.len(), 0);
 
-    scope(|scope| {
-        scope.spawn(|_| {
+    scope(|s| {
+        s.spawn(|_| {
             for i in 0..COUNT {
                 loop {
                     if let Some(x) = q.pop() {
@@ -102,7 +102,7 @@ fn len() {
             }
         });
 
-        scope.spawn(|_| {
+        s.spawn(|_| {
             for i in 0..COUNT {
                 while q.push(i).is_err() {}
                 let len = q.len();
@@ -120,8 +120,8 @@ fn spsc() {
 
     let q = ArrayQueue::new(3);
 
-    scope(|scope| {
-        scope.spawn(|_| {
+    scope(|s| {
+        s.spawn(|_| {
             for i in 0..COUNT {
                 loop {
                     if let Some(x) = q.pop() {
@@ -133,7 +133,7 @@ fn spsc() {
             assert!(q.pop().is_none());
         });
 
-        scope.spawn(|_| {
+        s.spawn(|_| {
             for i in 0..COUNT {
                 while q.push(i).is_err() {}
             }
@@ -150,9 +150,9 @@ fn mpmc() {
     let q = ArrayQueue::<usize>::new(3);
     let v = (0..COUNT).map(|_| AtomicUsize::new(0)).collect::<Vec<_>>();
 
-    scope(|scope| {
+    scope(|s| {
         for _ in 0..THREADS {
-            scope.spawn(|_| {
+            s.spawn(|_| {
                 for _ in 0..COUNT {
                     let n = loop {
                         if let Some(x) = q.pop() {
@@ -164,7 +164,7 @@ fn mpmc() {
             });
         }
         for _ in 0..THREADS {
-            scope.spawn(|_| {
+            s.spawn(|_| {
                 for i in 0..COUNT {
                     while q.push(i).is_err() {}
                 }
@@ -202,14 +202,14 @@ fn drops() {
         DROPS.store(0, Ordering::SeqCst);
         let q = ArrayQueue::new(50);
 
-        scope(|scope| {
-            scope.spawn(|_| {
+        scope(|s| {
+            s.spawn(|_| {
                 for _ in 0..steps {
                     while q.pop().is_none() {}
                 }
             });
 
-            scope.spawn(|_| {
+            s.spawn(|_| {
                 for _ in 0..steps {
                     while q.push(DropCounter).is_err() {
                         DROPS.fetch_sub(1, Ordering::SeqCst);
@@ -236,9 +236,9 @@ fn linearizable() {
 
     let q = ArrayQueue::new(THREADS);
 
-    scope(|scope| {
+    scope(|s| {
         for _ in 0..THREADS {
-            scope.spawn(|_| {
+            s.spawn(|_| {
                 for _ in 0..COUNT {
                     while q.push(0).is_err() {}
                     q.pop().unwrap();

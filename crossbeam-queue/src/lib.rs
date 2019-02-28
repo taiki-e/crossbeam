@@ -4,6 +4,7 @@
 //!
 //! * [`ArrayQueue`], a bounded MPMC queue that allocates a fixed-capacity buffer on construction.
 //! * [`SegQueue`], an unbounded MPMC queue that allocates small buffers, segments, on demand.
+//! * [`spsc`], a bounded SPSC queue that allocates a fixed-capacity buffer on construction.
 
 #![doc(test(
     no_crate_inject,
@@ -30,8 +31,10 @@ cfg_if::cfg_if! {
 
         mod array_queue;
         mod seg_queue;
+        mod spsc;
 
         pub use self::array_queue::ArrayQueue;
         pub use self::seg_queue::SegQueue;
+        pub use self::spsc::{spsc, Consumer, Producer};
     }
 }

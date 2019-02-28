@@ -79,7 +79,7 @@ unsafe impl<T: Send> Sync for ArrayQueue<T> {}
 unsafe impl<T: Send> Send for ArrayQueue<T> {}
 
 impl<T> ArrayQueue<T> {
-    /// Creates a new bounded queue with the given capacity.
+    /// Creates a bounded queue with the given capacity.
     ///
     /// # Panics
     ///
@@ -258,10 +258,10 @@ impl<T> ArrayQueue<T> {
                 ) {
                     Ok(_) => {
                         // Read the value from the slot and update the stamp.
-                        let msg = unsafe { slot.value.get().read().assume_init() };
+                        let value = unsafe { slot.value.get().read().assume_init() };
                         slot.stamp
                             .store(head.wrapping_add(self.one_lap), Ordering::Release);
-                        return Some(msg);
+                        return Some(value);
                     }
                     Err(h) => {
                         head = h;
@@ -397,9 +397,9 @@ impl<T> Drop for ArrayQueue<T> {
         // Get the index of the head.
         let hix = self.head.load(Ordering::Relaxed) & (self.one_lap - 1);
 
-        // Loop over all slots that hold a message and drop them.
+        // Loop over all slots that hold a value and drop them.
         for i in 0..self.len() {
-            // Compute the index of the next slot holding a message.
+            // Compute the index of the next slot holding a value.
             let index = if hix + i < self.cap {
                 hix + i
             } else {
