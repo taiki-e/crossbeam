@@ -7,3 +7,9 @@ export RUSTFLAGS="-D warnings"
 
 cargo check --bins --examples --tests
 cargo test
+
+if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
+    # Check minimal versions.
+    cargo update -Zminimal-versions
+    cargo check
+fi

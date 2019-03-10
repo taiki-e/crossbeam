@@ -20,4 +20,8 @@ if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
         --target x86_64-unknown-linux-gnu \
         --features sanitize,nightly \
         --example sanitize
+
+    # Check minimal versions.
+    cargo update -Zminimal-versions
+    cargo check --all-features
 fi

@@ -12,4 +12,8 @@ cargo test
 if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
     cargo check --no-default-features --features nightly
     cargo test --features nightly
+
+    # Check minimal versions.
+    cargo update -Zminimal-versions
+    cargo check --all-features
 fi

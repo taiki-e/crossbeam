@@ -11,4 +11,8 @@ cargo tree
 cargo tree --duplicate
 cargo tree --duplicate || exit 1
 
+# Check minimal versions.
+cargo update -Zminimal-versions
+cargo tree
+
 exit 0

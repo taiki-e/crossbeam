@@ -11,4 +11,9 @@ cargo test -- --test-threads=1
 if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
     cd benchmarks
     cargo check --bins
+
+    # Check minimal versions.
+    cd ..
+    cargo update -Zminimal-versions
+    cargo check
 fi
