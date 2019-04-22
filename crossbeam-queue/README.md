@@ -23,7 +23,7 @@ enabled.
 
 [`ArrayQueue`]: https://docs.rs/crossbeam-queue/*/crossbeam_queue/struct.ArrayQueue.html
 [`SegQueue`]: https://docs.rs/crossbeam-queue/*/crossbeam_queue/struct.SegQueue.html
-[`spsc`]: https://docs.rs/crossbeam-queue/*/crossbeam_queue/fn.spsc.html
+[`spsc`]: https://docs.rs/crossbeam-queue/*/crossbeam_queue/spsc/index.html
 
 ## Usage
 

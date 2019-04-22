@@ -31,10 +31,9 @@ cfg_if::cfg_if! {
 
         mod array_queue;
         mod seg_queue;
-        mod spsc;
 
         pub use self::array_queue::ArrayQueue;
         pub use self::seg_queue::SegQueue;
-        pub use self::spsc::{spsc, Consumer, Producer};
+        pub mod spsc;
     }
 }
