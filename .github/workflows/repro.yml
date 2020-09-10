@@ -1,0 +1,29 @@
+name: repro
+on:
+  pull_request:
+  push:
+    branches:
+      - repro
+
+env:
+  RUSTFLAGS: -Dwarnings
+  RUST_BACKTRACE: 1
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  repro:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Install rust
+        run: |
+          rustup update nightly && rustup default nightly
+      - name: Install valgrind
+        run: |
+          sudo apt update && sudo apt install -y valgrind
+      - name: Run ci/repro.sh
+        run: |
+          . ./ci/repro.sh
