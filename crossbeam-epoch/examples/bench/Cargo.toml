@@ -12,5 +12,5 @@ panic = "abort"
 [workspace]
 
 [dependencies]
-flize = "3.2"
+flize = "=3.2.0"
 crossbeam-epoch = { path = "../../../crossbeam-epoch" }

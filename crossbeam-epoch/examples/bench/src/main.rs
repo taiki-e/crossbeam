@@ -7,7 +7,7 @@ use std::{
 const ITER: usize = 1 << 11;
 const THREADS: usize = 8;
 
-fn _flize(collector: Arc<flize::Collector>) {
+fn flize(collector: Arc<flize::Collector>) {
     let barrier = Arc::new(Barrier::new(THREADS + 1));
 
     for _ in 0..THREADS {
@@ -63,20 +63,20 @@ fn crossbeam_epoch(collector: Arc<crossbeam_epoch::Collector>) {
 
 fn main() {
     {
-        // let start = Instant::now();
-        // let collector = Arc::new(flize::Collector::new());
-        // let mut x = 0;
+        let start = Instant::now();
+        let collector = Arc::new(flize::Collector::new());
+        let mut x = 0;
 
-        // while start.elapsed() < Duration::from_secs(60) {
-        //     x += 1;
-        //     flize(Arc::clone(&collector));
-        // }
+        while start.elapsed() < Duration::from_secs(60) {
+            x += 1;
+            flize(Arc::clone(&collector));
+        }
 
-        // println!(
-        //     "flize: called retire {} times in {} milliseconds",
-        //     x * THREADS * ITER,
-        //     start.elapsed().as_millis()
-        // );
+        println!(
+            "flize: called retire {} times in {} milliseconds",
+            x * THREADS * ITER,
+            start.elapsed().as_millis()
+        );
     }
 
     {
