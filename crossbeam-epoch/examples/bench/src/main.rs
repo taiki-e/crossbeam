@@ -49,6 +49,7 @@ fn crossbeam_epoch(collector: Arc<crossbeam_epoch::Collector>) {
 
                 for _ in 0..ITER {
                     guard.defer(|| ());
+                    guard.flush();
                 }
             }
 
