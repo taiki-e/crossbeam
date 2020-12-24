@@ -738,8 +738,19 @@ impl<T> From<*const T> for Atomic<T> {
     }
 }
 
+mod private_pointer {
+    use super::{Owned, Pointable, Shared};
+
+    pub trait Sealed {}
+
+    impl<T: ?Sized + Pointable> Sealed for Owned<T> {}
+    impl<T: ?Sized + Pointable> Sealed for Shared<'_, T> {}
+}
+
 /// A trait for either `Owned` or `Shared` pointers.
-pub trait Pointer<T: ?Sized + Pointable> {
+///
+/// This trait is sealed and cannot be implemented for types outside of `crossbeam-epoch`.
+pub trait Pointer<T: ?Sized + Pointable>: private_pointer::Sealed {
     /// Returns the machine representation of the pointer.
     fn into_usize(self) -> usize;
 
