@@ -16,12 +16,13 @@
 //! assert!(c.pop().is_none());
 //! ```
 
-use std::cell::Cell;
-use std::fmt;
-use std::marker::PhantomData;
-use std::mem;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use core::cell::Cell;
+use core::fmt;
+use core::marker::PhantomData;
+use core::mem;
+use core::sync::atomic::{AtomicUsize, Ordering};
 
 use crossbeam_utils::CachePadded;
 
