@@ -13,11 +13,11 @@ fn smoke() {
     let (p, c) = spsc::new(1);
 
     p.push(7).unwrap();
-    assert_eq!(c.pop(), Ok(7));
+    assert_eq!(c.pop(), Some(7));
 
     p.push(8).unwrap();
-    assert_eq!(c.pop(), Ok(8));
-    assert!(c.pop().is_err());
+    assert_eq!(c.pop(), Some(8));
+    assert!(c.pop().is_none());
 }
 
 #[test]
@@ -45,13 +45,13 @@ fn parallel() {
         s.spawn(move |_| {
             for i in 0..COUNT {
                 loop {
-                    if let Ok(x) = c.pop() {
+                    if let Some(x) = c.pop() {
                         assert_eq!(x, i);
                         break;
                     }
                 }
             }
-            assert!(c.pop().is_err());
+            assert!(c.pop().is_none());
         });
 
         s.spawn(move |_| {
@@ -90,7 +90,7 @@ fn drops() {
         let p = scope(|s| {
             s.spawn(move |_| {
                 for _ in 0..steps {
-                    while c.pop().is_err() {}
+                    while c.pop().is_none() {}
                 }
             });
 
