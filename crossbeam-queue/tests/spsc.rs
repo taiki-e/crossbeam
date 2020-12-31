@@ -1,7 +1,3 @@
-extern crate crossbeam_queue;
-extern crate crossbeam_utils;
-extern crate rand;
-
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crossbeam_queue::spsc;
@@ -81,8 +77,8 @@ fn drops() {
     let mut rng = thread_rng();
 
     for _ in 0..RUNS {
-        let steps = rng.gen_range(0, 10_000);
-        let additional = rng.gen_range(0, 50);
+        let steps = rng.gen_range(0..10_000);
+        let additional = rng.gen_range(0..50);
 
         DROPS.store(0, Ordering::SeqCst);
         let (p, c) = spsc::new(50);

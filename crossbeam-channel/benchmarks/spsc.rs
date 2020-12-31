@@ -1,5 +1,3 @@
-extern crate crossbeam;
-
 use crossbeam::queue;
 use std::thread;
 
@@ -31,7 +29,7 @@ fn spsc() {
 
         for _ in 0..MESSAGES {
             loop {
-                if c.pop().is_err() {
+                if c.pop().is_none() {
                     thread::yield_now();
                 } else {
                     break;
