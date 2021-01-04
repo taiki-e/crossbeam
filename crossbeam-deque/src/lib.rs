@@ -95,16 +95,16 @@
     rust_2018_idioms,
     unreachable_pub
 )]
-#![cfg_attr(not(feature = "std"), no_std)]
+//#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 // matches! requires Rust 1.42
 #![allow(clippy::match_like_matches_macro)]
 
 use cfg_if::cfg_if;
 
 cfg_if! {
-    if #[cfg(feature = "std")] {
-        use crossbeam_epoch as epoch;
-        use crossbeam_utils as utils;
+    if #[cfg(feature = "alloc")] {
+        extern crate alloc;
 
         mod deque;
         pub use crate::deque::{Injector, Steal, Stealer, Worker};

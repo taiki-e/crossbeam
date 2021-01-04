@@ -19,6 +19,10 @@ categories = ["algorithms", "concurrency", "data-structures"]
 [features]
 default = ["std"]
 
+# Enable to use APIs that require `alloc`.
+# This is enabled by default and also enabled if the `std` feature is enabled.
+alloc = ["crossbeam-epoch/alloc"]
+
 # Enable to use APIs that require `std`.
 # This is enabled by default.
 std = ["crossbeam-epoch/std", "crossbeam-utils/std"]
@@ -36,7 +40,6 @@ optional = true
 version = "0.8"
 path = "../crossbeam-utils"
 default-features = false
-optional = true
 
 [dev-dependencies]
 rand = "0.8"

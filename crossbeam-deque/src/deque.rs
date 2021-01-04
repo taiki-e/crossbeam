@@ -2,18 +2,22 @@
 // to read because we're mutating the range bound.
 #![allow(clippy::mut_range_bound)]
 
-use std::cell::{Cell, UnsafeCell};
-use std::cmp;
-use std::fmt;
-use std::iter::FromIterator;
-use std::marker::PhantomData;
-use std::mem::{self, MaybeUninit};
-use std::ptr;
-use std::sync::atomic::{self, AtomicIsize, AtomicPtr, AtomicUsize, Ordering};
-use std::sync::Arc;
+use alloc::boxed::Box;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use core::cell::{Cell, UnsafeCell};
+use core::cmp;
+use core::fmt;
+use core::iter::FromIterator;
+use core::marker::PhantomData;
+use core::mem::{self, MaybeUninit};
+use core::ptr;
+use core::sync::atomic::{self, AtomicIsize, AtomicPtr, AtomicUsize, Ordering};
 
-use crate::epoch::{self, Atomic, Owned};
-use crate::utils::{Backoff, CachePadded};
+use crossbeam_epoch as epoch;
+use crossbeam_utils as utils;
+use epoch::{Atomic, Owned};
+use utils::{Backoff, CachePadded};
 
 // Minimum buffer capacity.
 const MIN_CAP: usize = 64;
@@ -1367,7 +1371,9 @@ impl<T> Injector<T> {
 
             // Destroy the block if we've reached the end, or if another thread wanted to destroy
             // but couldn't because we were busy reading from the slot.
-            if (offset + 1 == BLOCK_CAP) || (slot.state.fetch_or(READ, Ordering::AcqRel) & DESTROY != 0) {
+            if (offset + 1 == BLOCK_CAP)
+                || (slot.state.fetch_or(READ, Ordering::AcqRel) & DESTROY != 0)
+            {
                 Block::destroy(block, offset);
             }
 
