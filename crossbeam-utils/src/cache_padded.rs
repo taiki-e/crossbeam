@@ -14,7 +14,7 @@ use core::ops::{Deref, DerefMut};
 /// Cache lines are assumed to be N bytes long, depending on the architecture:
 ///
 /// * On x86-64, aarch64, and powerpc64, N = 128.
-/// * On arm, mips, mips64, and riscv64, N = 32.
+/// * On arm, mips, mips64, riscv64, sparc, and hexagon, N = 32.
 /// * On s390x, N = 256.
 /// * On all others, N = 64.
 ///
@@ -91,12 +91,16 @@ use core::ops::{Deref, DerefMut};
 // - https://github.com/golang/go/blob/3dd58676054223962cd915bb0934d1f9f489d4d2/src/internal/cpu/cpu_mipsle.go#L7
 // - https://github.com/golang/go/blob/3dd58676054223962cd915bb0934d1f9f489d4d2/src/internal/cpu/cpu_mips64x.go#L9
 // - https://github.com/golang/go/blob/3dd58676054223962cd915bb0934d1f9f489d4d2/src/internal/cpu/cpu_riscv64.go#L7
+// - https://github.com/torvalds/linux/blob/3516bd729358a2a9b090c1905bd2a3fa926e24c6/arch/sparc/include/asm/cache.h#L13
+// - https://github.com/torvalds/linux/blob/3516bd729358a2a9b090c1905bd2a3fa926e24c6/arch/hexagon/include/asm/cache.h#L12
 #[cfg_attr(
     any(
         target_arch = "arm",
         target_arch = "mips",
         target_arch = "mips64",
         target_arch = "riscv64",
+        target_arch = "sparc",
+        target_arch = "hexagon",
     ),
     repr(align(32))
 )]
@@ -104,6 +108,7 @@ use core::ops::{Deref, DerefMut};
 //
 // Sources:
 // - https://github.com/golang/go/blob/3dd58676054223962cd915bb0934d1f9f489d4d2/src/internal/cpu/cpu_s390x.go#L7
+// - https://github.com/torvalds/linux/blob/3516bd729358a2a9b090c1905bd2a3fa926e24c6/arch/s390/include/asm/cache.h#L13
 #[cfg_attr(target_arch = "s390x", repr(align(256)))]
 // x86 and wasm have 64-byte cache line size.
 //
@@ -122,6 +127,8 @@ use core::ops::{Deref, DerefMut};
         target_arch = "mips64",
         target_arch = "riscv64",
         target_arch = "s390x",
+        target_arch = "sparc",
+        target_arch = "hexagon",
     )),
     repr(align(64))
 )]
