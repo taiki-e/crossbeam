@@ -267,6 +267,7 @@ fn ready() {
     assert_eq!(hits.load(Ordering::SeqCst), COUNT);
 }
 
+#[cfg_attr(target_arch = "arm", ignore)]
 #[test]
 fn stress_clone() {
     const RUNS: usize = 1000;

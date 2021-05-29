@@ -293,6 +293,7 @@ fn mpmc() {
     }
 }
 
+#[cfg_attr(target_arch = "arm", ignore)]
 #[test]
 fn stress_oneshot() {
     const COUNT: usize = 10_000;

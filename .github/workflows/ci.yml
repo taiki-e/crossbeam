@@ -6,6 +6,7 @@ on:
     branches:
       - staging
       - trying
+      - target
   schedule:
     - cron: '0 1 * * *'
 
@@ -43,12 +44,49 @@ jobs:
           #   os: macos-latest
           - rust: nightly
             os: windows-latest
+          - rust: nightly-x86_64-gnu
+            os: windows-latest
           - rust: nightly
             os: ubuntu-latest
             target: i686-unknown-linux-gnu
           - rust: nightly
             os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
+          - rust: nightly
+            os: ubuntu-latest
+            target: arm-unknown-linux-gnueabi
+          - rust: nightly
+            os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+          - rust: nightly
+            os: ubuntu-latest
+            target: mips-unknown-linux-gnu
+          - rust: nightly
+            os: ubuntu-latest
+            target: mipsel-unknown-linux-gnu
+          - rust: nightly
+            os: ubuntu-latest
+            target: mips64-unknown-linux-gnuabi64
+          - rust: nightly
+            os: ubuntu-latest
+            target: mips64el-unknown-linux-gnuabi64
+          - rust: nightly
+            os: ubuntu-latest
+            target: powerpc-unknown-linux-gnu
+          # `cross` does not provide a Docker image
+          # - rust: nightly
+          #   os: ubuntu-latest
+          #   target: powerpc64-unknown-linux-gnu
+          # `cross` does not provide a Docker image
+          # - rust: nightly
+          #   os: ubuntu-latest
+          #   target: sparc64-unknown-linux-gnu
+          - rust: nightly
+            os: ubuntu-latest
+            target: riscv64gc-unknown-linux-gnu
+          - rust: nightly
+            os: ubuntu-latest
+            target: s390x-unknown-linux-gnu
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
