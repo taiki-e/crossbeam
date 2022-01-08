@@ -8,7 +8,7 @@ publish = false
 atomicring = "1.1.1"
 bus = "2.0.1"
 chan = "0.1.23"
-crossbeam = { path = "../.." }
+crossbeam = { path = "../../crossbeam" }
 crossbeam-channel = { path = ".." }
 crossbeam-deque = { path = "../../crossbeam-deque" }
 flume = "0.10"

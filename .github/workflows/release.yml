@@ -31,14 +31,3 @@ jobs:
           branch: master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: "!startsWith(github.ref_name, 'crossbeam-0')"
-      # Since the crossbeam crate is located at the root, we need to handle it differently.
-      # TODO: Consider moving crossbeam crate to a subdirectory.
-      - uses: taiki-e/create-gh-release-action@v1
-        with:
-          changelog: CHANGELOG.md
-          title: crossbeam $version
-          branch: master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: startsWith(github.ref_name, 'crossbeam-0')
