@@ -56,7 +56,11 @@ use crate::sync::queue::Queue;
 
 /// Maximum number of objects a bag can contain.
 #[cfg(not(crossbeam_sanitize))]
+#[cfg(not(target_arch = "bpf"))]
 const MAX_OBJECTS: usize = 62;
+#[cfg(not(crossbeam_sanitize))]
+#[cfg(target_arch = "bpf")]
+const MAX_OBJECTS: usize = 30;
 #[cfg(crossbeam_sanitize)]
 const MAX_OBJECTS: usize = 4;
 
@@ -110,6 +114,7 @@ impl Default for Bag {
     fn default() -> Self {
         // TODO: [no_op; MAX_OBJECTS] syntax blocked by https://github.com/rust-lang/rust/issues/49147
         #[cfg(not(crossbeam_sanitize))]
+        #[cfg(not(target_arch = "bpf"))]
         return Bag {
             len: 0,
             deferreds: [
@@ -145,6 +150,43 @@ impl Default for Bag {
                 Deferred::new(no_op_func),
                 Deferred::new(no_op_func),
                 Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+                Deferred::new(no_op_func),
+            ],
+        };
+        #[cfg(not(crossbeam_sanitize))]
+        #[cfg(target_arch = "bpf")]
+        return Bag {
+            len: 0,
+            deferreds: [
                 Deferred::new(no_op_func),
                 Deferred::new(no_op_func),
                 Deferred::new(no_op_func),
