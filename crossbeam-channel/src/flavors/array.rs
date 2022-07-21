@@ -8,10 +8,10 @@
 //!   - <http://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue>
 //!   - <https://docs.google.com/document/d/1yIAYmbvL3JxOKOjuCyon7JhW4cSv1wy5hC0ApeGMV9s/pub>
 
-use std::cell::UnsafeCell;
+use crate::primitive::cell::UnsafeCell;
+use crate::primitive::sync::atomic::{self, AtomicUsize, Ordering};
 use std::mem::MaybeUninit;
 use std::ptr;
-use std::sync::atomic::{self, AtomicUsize, Ordering};
 use std::time::Instant;
 
 use crossbeam_utils::{Backoff, CachePadded};
@@ -219,7 +219,7 @@ impl<T> Channel<T> {
         let slot: &Slot<T> = &*(token.array.slot as *const Slot<T>);
 
         // Write the message into the slot and update the stamp.
-        slot.msg.get().write(MaybeUninit::new(msg));
+        slot.msg.with_mut(|m| m.write(MaybeUninit::new(msg)));
         slot.stamp.store(token.array.stamp, Ordering::Release);
 
         // Wake a sleeping receiver.
@@ -310,7 +310,7 @@ impl<T> Channel<T> {
         let slot: &Slot<T> = &*(token.array.slot as *const Slot<T>);
 
         // Read the message from the slot and update the stamp.
-        let msg = slot.msg.get().read().assume_init();
+        let msg = slot.msg.with(|m| m.read().assume_init());
         slot.stamp.store(token.array.stamp, Ordering::Release);
 
         // Wake a sleeping sender.
@@ -521,7 +521,13 @@ impl<T> Channel<T> {
 impl<T> Drop for Channel<T> {
     fn drop(&mut self) {
         // Get the index of the head.
+        #[cfg(crossbeam_loom)]
+        let head = unsafe { self.head.unsync_load() };
+        #[cfg(not(crossbeam_loom))]
         let head = *self.head.get_mut();
+        #[cfg(crossbeam_loom)]
+        let tail = unsafe { self.tail.unsync_load() };
+        #[cfg(not(crossbeam_loom))]
         let tail = *self.tail.get_mut();
 
         let hix = head & (self.mark_bit - 1);
@@ -549,8 +555,7 @@ impl<T> Drop for Channel<T> {
             unsafe {
                 debug_assert!(index < self.buffer.len());
                 let slot = self.buffer.get_unchecked_mut(index);
-                let msg = &mut *slot.msg.get();
-                msg.as_mut_ptr().drop_in_place();
+                slot.msg.with_mut(|m| (*m).as_mut_ptr().drop_in_place());
             }
         }
     }

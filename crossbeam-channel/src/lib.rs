@@ -338,6 +338,88 @@
 
 use cfg_if::cfg_if;
 
+#[cfg(crossbeam_loom)]
+extern crate loom_crate as loom;
+
+#[cfg(crossbeam_loom)]
+#[allow(unused_imports, dead_code)]
+mod primitive {
+    pub(crate) mod cell {
+        pub(crate) use core::cell::Cell;
+        pub(crate) use loom::cell::UnsafeCell;
+    }
+    pub(crate) mod sync {
+        pub(crate) mod atomic {
+            pub(crate) use core::sync::atomic::Ordering;
+            pub(crate) use loom::sync::atomic::{AtomicBool, AtomicPtr, AtomicUsize};
+            pub(crate) fn fence(ord: Ordering) {
+                if let Ordering::Acquire = ord {
+                } else {
+                    // FIXME: loom only supports acquire fences at the moment.
+                    // https://github.com/tokio-rs/loom/issues/117
+                    // let's at least not panic...
+                    // this may generate some false positives (`SeqCst` is stronger than `Acquire`
+                    // for example), and some false negatives (`Relaxed` is weaker than `Acquire`),
+                    // but it's the best we can do for the time being.
+                }
+                loom::sync::atomic::fence(Ordering::Acquire)
+            }
+
+            // FIXME: loom does not support compiler_fence at the moment.
+            // https://github.com/tokio-rs/loom/issues/117
+            // we use fence as a stand-in for compiler_fence for the time being.
+            // this may miss some races since fence is stronger than compiler_fence,
+            // but it's the best we can do for the time being.
+            pub(crate) use self::fence as compiler_fence;
+        }
+        pub(crate) use loom::sync::{Arc, Mutex};
+    }
+    pub(crate) mod thread {
+        pub(crate) use loom::thread::{current, park, yield_now, Thread, ThreadId};
+        // TODO: loom does not support thread::sleep yet
+        pub(crate) use std::thread::sleep;
+    }
+    pub(crate) use loom::thread_local;
+}
+#[cfg(feature = "std")]
+#[cfg(not(crossbeam_loom))]
+#[allow(unused_imports, dead_code)]
+mod primitive {
+    pub(crate) mod cell {
+        pub(crate) use core::cell::Cell;
+
+        #[derive(Debug)]
+        #[repr(transparent)]
+        pub(crate) struct UnsafeCell<T>(::core::cell::UnsafeCell<T>);
+
+        // loom's UnsafeCell has a slightly different API than the standard library UnsafeCell.
+        // Since we want the rest of the code to be agnostic to whether it's running under loom or
+        // not, we write this small wrapper that provides the loom-supported API for the standard
+        // library UnsafeCell. This is also what the loom documentation recommends:
+        // https://github.com/tokio-rs/loom#handling-loom-api-differences
+        impl<T> UnsafeCell<T> {
+            #[inline]
+            pub(crate) fn new(data: T) -> UnsafeCell<T> {
+                UnsafeCell(::core::cell::UnsafeCell::new(data))
+            }
+
+            #[inline]
+            pub(crate) fn with<R>(&self, f: impl FnOnce(*const T) -> R) -> R {
+                f(self.0.get())
+            }
+
+            #[inline]
+            pub(crate) fn with_mut<R>(&self, f: impl FnOnce(*mut T) -> R) -> R {
+                f(self.0.get())
+            }
+        }
+    }
+    pub(crate) use std::{sync, thread, thread_local};
+}
+
+#[cfg(test)]
+mod tests;
+
 cfg_if! {
     if #[cfg(feature = "std")] {
         mod channel;
@@ -357,7 +439,9 @@ cfg_if! {
             pub use crate::select::{select, select_timeout, try_select};
         }
 
-        pub use crate::channel::{after, at, never, tick};
+        pub use crate::channel::{after, at, never};
+        #[cfg(not(crossbeam_loom))]
+        pub use crate::channel::tick;
         pub use crate::channel::{bounded, unbounded};
         pub use crate::channel::{IntoIter, Iter, TryIter};
         pub use crate::channel::{Receiver, Sender};

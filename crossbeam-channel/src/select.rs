@@ -27,6 +27,7 @@ pub struct Token {
     pub(crate) list: flavors::list::ListToken,
     #[allow(dead_code)]
     pub(crate) never: flavors::never::NeverToken,
+    #[cfg(not(crossbeam_loom))]
     pub(crate) tick: flavors::tick::TickToken,
     pub(crate) zero: flavors::zero::ZeroToken,
 }

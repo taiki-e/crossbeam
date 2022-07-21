@@ -1,9 +1,9 @@
 //! Reference counter for channels.
 
+use crate::primitive::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::isize;
 use std::ops;
 use std::process;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 /// Reference counter internals.
 struct Counter<C> {

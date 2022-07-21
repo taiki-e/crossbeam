@@ -1,10 +1,10 @@
 //! Unbounded channel implemented as a linked list.
 
-use std::cell::UnsafeCell;
+use crate::primitive::cell::UnsafeCell;
+use crate::primitive::sync::atomic::{self, AtomicPtr, AtomicUsize, Ordering};
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::ptr;
-use std::sync::atomic::{self, AtomicPtr, AtomicUsize, Ordering};
 use std::time::Instant;
 
 use crossbeam_utils::{Backoff, CachePadded};
@@ -40,6 +40,7 @@ const SHIFT: usize = 1;
 const MARK_BIT: usize = 1;
 
 /// A slot in a block.
+#[cfg_attr(crossbeam_loom, derive(Debug))]
 struct Slot<T> {
     /// The message.
     msg: UnsafeCell<MaybeUninit<T>>,
@@ -61,6 +62,7 @@ impl<T> Slot<T> {
 /// A block in a linked list.
 ///
 /// Each block in the list can hold up to `BLOCK_CAP` messages.
+#[cfg_attr(crossbeam_loom, derive(Debug))]
 struct Block<T> {
     /// The next block in the linked list.
     next: AtomicPtr<Block<T>>,
@@ -286,7 +288,7 @@ impl<T> Channel<T> {
         let block = token.list.block as *mut Block<T>;
         let offset = token.list.offset;
         let slot = (*block).slots.get_unchecked(offset);
-        slot.msg.get().write(MaybeUninit::new(msg));
+        slot.msg.with_mut(|m| m.write(MaybeUninit::new(msg)));
         slot.state.fetch_or(WRITE, Ordering::Release);
 
         // Wake a sleeping receiver.
@@ -391,7 +393,7 @@ impl<T> Channel<T> {
         let offset = token.list.offset;
         let slot = (*block).slots.get_unchecked(offset);
         slot.wait_write();
-        let msg = slot.msg.get().read().assume_init();
+        let msg = slot.msg.with(|m| m.read().assume_init());
 
         // Destroy the block if we've reached the end, or if another thread wanted to destroy but
         // couldn't because we were busy reading from the slot.
@@ -591,8 +593,7 @@ impl<T> Channel<T> {
                     // Drop the message in the slot.
                     let slot = (*block).slots.get_unchecked(offset);
                     slot.wait_write();
-                    let p = &mut *slot.msg.get();
-                    p.as_mut_ptr().drop_in_place();
+                    slot.msg.with_mut(|m| (*m).as_mut_ptr().drop_in_place());
                 } else {
                     (*block).wait_next();
                     // Deallocate the block and move to the next one.
@@ -634,8 +635,17 @@ impl<T> Channel<T> {
 
 impl<T> Drop for Channel<T> {
     fn drop(&mut self) {
+        #[cfg(crossbeam_loom)]
+        let mut head = unsafe { self.head.index.unsync_load() };
+        #[cfg(not(crossbeam_loom))]
         let mut head = *self.head.index.get_mut();
+        #[cfg(crossbeam_loom)]
+        let mut tail = unsafe { self.tail.index.unsync_load() };
+        #[cfg(not(crossbeam_loom))]
         let mut tail = *self.tail.index.get_mut();
+        #[cfg(crossbeam_loom)]
+        let mut block = unsafe { self.head.block.unsync_load() };
+        #[cfg(not(crossbeam_loom))]
         let mut block = *self.head.block.get_mut();
 
         // Erase the lower bits.
@@ -650,10 +660,12 @@ impl<T> Drop for Channel<T> {
                 if offset < BLOCK_CAP {
                     // Drop the message in the slot.
                     let slot = (*block).slots.get_unchecked(offset);
-                    let p = &mut *slot.msg.get();
-                    p.as_mut_ptr().drop_in_place();
+                    slot.msg.with_mut(|m| (*m).as_mut_ptr().drop_in_place());
                 } else {
                     // Deallocate the block and move to the next one.
+                    #[cfg(crossbeam_loom)]
+                    let next = (*block).next.unsync_load();
+                    #[cfg(not(crossbeam_loom))]
                     let next = *(*block).next.get_mut();
                     drop(Box::from_raw(block));
                     block = next;

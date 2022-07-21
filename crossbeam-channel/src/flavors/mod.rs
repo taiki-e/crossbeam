@@ -13,5 +13,6 @@ pub(crate) mod array;
 pub(crate) mod at;
 pub(crate) mod list;
 pub(crate) mod never;
+#[cfg(not(crossbeam_loom))]
 pub(crate) mod tick;
 pub(crate) mod zero;

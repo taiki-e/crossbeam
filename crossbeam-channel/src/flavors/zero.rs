@@ -2,10 +2,10 @@
 //!
 //! This kind of channel is also known as *rendezvous* channel.
 
-use std::cell::UnsafeCell;
+use crate::primitive::cell::UnsafeCell;
+use crate::primitive::sync::atomic::{AtomicBool, Ordering};
+use crate::primitive::sync::Mutex;
 use std::marker::PhantomData;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
 use std::time::Instant;
 use std::{fmt, ptr};
 
@@ -148,7 +148,7 @@ impl<T> Channel<T> {
         }
 
         let packet = &*(token.zero.0 as *const Packet<T>);
-        packet.msg.get().write(Some(msg));
+        packet.msg.with_mut(|m| m.write(Some(msg)));
         packet.ready.store(true, Ordering::Release);
         Ok(())
     }
@@ -182,14 +182,14 @@ impl<T> Channel<T> {
             // The message has been in the packet from the beginning, so there is no need to wait
             // for it. However, after reading the message, we need to set `ready` to `true` in
             // order to signal that the packet can be destroyed.
-            let msg = packet.msg.get().replace(None).unwrap();
+            let msg = packet.msg.with_mut(|m| m.replace(None).unwrap());
             packet.ready.store(true, Ordering::Release);
             Ok(msg)
         } else {
             // Wait until the message becomes available, then read it and destroy the
             // heap-allocated packet.
             packet.wait_ready();
-            let msg = packet.msg.get().replace(None).unwrap();
+            let msg = packet.msg.with_mut(|m| m.replace(None).unwrap());
             drop(Box::from_raw(token.zero.0 as *mut Packet<T>));
             Ok(msg)
         }
@@ -255,12 +255,12 @@ impl<T> Channel<T> {
                 Selected::Waiting => unreachable!(),
                 Selected::Aborted => {
                     self.inner.lock().unwrap().senders.unregister(oper).unwrap();
-                    let msg = unsafe { packet.msg.get().replace(None).unwrap() };
+                    let msg = unsafe { packet.msg.with_mut(|m| m.replace(None).unwrap()) };
                     Err(SendTimeoutError::Timeout(msg))
                 }
                 Selected::Disconnected => {
                     self.inner.lock().unwrap().senders.unregister(oper).unwrap();
-                    let msg = unsafe { packet.msg.get().replace(None).unwrap() };
+                    let msg = unsafe { packet.msg.with_mut(|m| m.replace(None).unwrap()) };
                     Err(SendTimeoutError::Disconnected(msg))
                 }
                 Selected::Operation(_) => {
@@ -345,7 +345,7 @@ impl<T> Channel<T> {
                 Selected::Operation(_) => {
                     // Wait until the message is provided, then read it.
                     packet.wait_ready();
-                    unsafe { Ok(packet.msg.get().replace(None).unwrap()) }
+                    unsafe { Ok(packet.msg.with_mut(|m| m.replace(None).unwrap())) }
                 }
             }
         })

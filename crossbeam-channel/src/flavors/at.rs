@@ -2,8 +2,8 @@
 //!
 //! Messages cannot be sent into this kind of channel; they are materialized on demand.
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread;
+use crate::primitive::sync::atomic::{AtomicBool, Ordering};
+use crate::primitive::thread;
 use std::time::{Duration, Instant};
 
 use crate::context::Context;

@@ -1,8 +1,8 @@
 //! Miscellaneous utilities.
 
-use std::cell::Cell;
+use crate::primitive::cell::Cell;
+use crate::primitive::thread;
 use std::num::Wrapping;
-use std::thread;
 use std::time::{Duration, Instant};
 
 /// Randomly shuffles a slice.

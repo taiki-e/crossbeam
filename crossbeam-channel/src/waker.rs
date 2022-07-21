@@ -1,9 +1,9 @@
 //! Waking mechanism for threads blocked on channel operations.
 
+use crate::primitive::sync::atomic::{AtomicBool, Ordering};
+use crate::primitive::sync::Mutex;
+use crate::primitive::thread::{self, ThreadId};
 use std::ptr;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
-use std::thread::{self, ThreadId};
 
 use crate::context::Context;
 use crate::select::{Operation, Selected};

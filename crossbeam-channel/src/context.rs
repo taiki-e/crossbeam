@@ -1,10 +1,10 @@
 //! Thread-local context used in select.
 
-use std::cell::Cell;
+use crate::primitive::cell::Cell;
+use crate::primitive::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
+use crate::primitive::sync::Arc;
+use crate::primitive::thread::{self, Thread, ThreadId};
 use std::ptr;
-use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use std::sync::Arc;
-use std::thread::{self, Thread, ThreadId};
 use std::time::Instant;
 
 use crossbeam_utils::Backoff;
@@ -165,6 +165,10 @@ impl Context {
                 let now = Instant::now();
 
                 if now < end {
+                    // TODO
+                    #[cfg(crossbeam_loom)]
+                    unimplemented!("loom does not support thread::park_timeout yet");
+                    #[cfg(not(crossbeam_loom))]
                     thread::park_timeout(end - now);
                 } else {
                     // The deadline has been reached. Try aborting select.

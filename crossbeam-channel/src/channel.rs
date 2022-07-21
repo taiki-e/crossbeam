@@ -1,10 +1,10 @@
 //! The channel interface.
 
+use crate::primitive::sync::Arc;
 use std::fmt;
 use std::iter::FusedIterator;
 use std::mem;
 use std::panic::{RefUnwindSafe, UnwindSafe};
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::context::Context;
@@ -319,6 +319,7 @@ pub fn never<T>() -> Receiver<T> {
 /// assert!(eq(r.recv().unwrap(), start + ms(700)));
 /// assert!(eq(Instant::now(), start + ms(700)));
 /// ```
+#[cfg(not(crossbeam_loom))]
 pub fn tick(duration: Duration) -> Receiver<Instant> {
     Receiver {
         flavor: ReceiverFlavor::Tick(Arc::new(flavors::tick::Channel::new(duration))),
@@ -710,6 +711,7 @@ enum ReceiverFlavor<T> {
     At(Arc<flavors::at::Channel>),
 
     /// The tick flavor.
+    #[cfg(not(crossbeam_loom))]
     Tick(Arc<flavors::tick::Channel>),
 
     /// The never flavor.
@@ -758,6 +760,7 @@ impl<T> Receiver<T> {
                     )
                 }
             }
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => {
                 let msg = chan.try_recv();
                 unsafe {
@@ -812,6 +815,7 @@ impl<T> Receiver<T> {
                     >(&msg)
                 }
             }
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => {
                 let msg = chan.recv(None);
                 unsafe {
@@ -920,6 +924,7 @@ impl<T> Receiver<T> {
                     >(&msg)
                 }
             }
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => {
                 let msg = chan.recv(Some(deadline));
                 unsafe {
@@ -954,6 +959,7 @@ impl<T> Receiver<T> {
             ReceiverFlavor::List(chan) => chan.is_empty(),
             ReceiverFlavor::Zero(chan) => chan.is_empty(),
             ReceiverFlavor::At(chan) => chan.is_empty(),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.is_empty(),
             ReceiverFlavor::Never(chan) => chan.is_empty(),
         }
@@ -980,6 +986,7 @@ impl<T> Receiver<T> {
             ReceiverFlavor::List(chan) => chan.is_full(),
             ReceiverFlavor::Zero(chan) => chan.is_full(),
             ReceiverFlavor::At(chan) => chan.is_full(),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.is_full(),
             ReceiverFlavor::Never(chan) => chan.is_full(),
         }
@@ -1005,6 +1012,7 @@ impl<T> Receiver<T> {
             ReceiverFlavor::List(chan) => chan.len(),
             ReceiverFlavor::Zero(chan) => chan.len(),
             ReceiverFlavor::At(chan) => chan.len(),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.len(),
             ReceiverFlavor::Never(chan) => chan.len(),
         }
@@ -1032,6 +1040,7 @@ impl<T> Receiver<T> {
             ReceiverFlavor::List(chan) => chan.capacity(),
             ReceiverFlavor::Zero(chan) => chan.capacity(),
             ReceiverFlavor::At(chan) => chan.capacity(),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.capacity(),
             ReceiverFlavor::Never(chan) => chan.capacity(),
         }
@@ -1126,6 +1135,7 @@ impl<T> Receiver<T> {
             (ReceiverFlavor::List(a), ReceiverFlavor::List(b)) => a == b,
             (ReceiverFlavor::Zero(a), ReceiverFlavor::Zero(b)) => a == b,
             (ReceiverFlavor::At(a), ReceiverFlavor::At(b)) => Arc::ptr_eq(a, b),
+            #[cfg(not(crossbeam_loom))]
             (ReceiverFlavor::Tick(a), ReceiverFlavor::Tick(b)) => Arc::ptr_eq(a, b),
             (ReceiverFlavor::Never(_), ReceiverFlavor::Never(_)) => true,
             _ => false,
@@ -1141,6 +1151,7 @@ impl<T> Drop for Receiver<T> {
                 ReceiverFlavor::List(chan) => chan.release(|c| c.disconnect_receivers()),
                 ReceiverFlavor::Zero(chan) => chan.release(|c| c.disconnect()),
                 ReceiverFlavor::At(_) => {}
+                #[cfg(not(crossbeam_loom))]
                 ReceiverFlavor::Tick(_) => {}
                 ReceiverFlavor::Never(_) => {}
             }
@@ -1155,6 +1166,7 @@ impl<T> Clone for Receiver<T> {
             ReceiverFlavor::List(chan) => ReceiverFlavor::List(chan.acquire()),
             ReceiverFlavor::Zero(chan) => ReceiverFlavor::Zero(chan.acquire()),
             ReceiverFlavor::At(chan) => ReceiverFlavor::At(chan.clone()),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => ReceiverFlavor::Tick(chan.clone()),
             ReceiverFlavor::Never(_) => ReceiverFlavor::Never(flavors::never::Channel::new()),
         };
@@ -1402,6 +1414,7 @@ impl<T> SelectHandle for Receiver<T> {
             ReceiverFlavor::List(chan) => chan.receiver().try_select(token),
             ReceiverFlavor::Zero(chan) => chan.receiver().try_select(token),
             ReceiverFlavor::At(chan) => chan.try_select(token),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.try_select(token),
             ReceiverFlavor::Never(chan) => chan.try_select(token),
         }
@@ -1413,6 +1426,7 @@ impl<T> SelectHandle for Receiver<T> {
             ReceiverFlavor::List(_) => None,
             ReceiverFlavor::Zero(_) => None,
             ReceiverFlavor::At(chan) => chan.deadline(),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.deadline(),
             ReceiverFlavor::Never(chan) => chan.deadline(),
         }
@@ -1424,6 +1438,7 @@ impl<T> SelectHandle for Receiver<T> {
             ReceiverFlavor::List(chan) => chan.receiver().register(oper, cx),
             ReceiverFlavor::Zero(chan) => chan.receiver().register(oper, cx),
             ReceiverFlavor::At(chan) => chan.register(oper, cx),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.register(oper, cx),
             ReceiverFlavor::Never(chan) => chan.register(oper, cx),
         }
@@ -1435,6 +1450,7 @@ impl<T> SelectHandle for Receiver<T> {
             ReceiverFlavor::List(chan) => chan.receiver().unregister(oper),
             ReceiverFlavor::Zero(chan) => chan.receiver().unregister(oper),
             ReceiverFlavor::At(chan) => chan.unregister(oper),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.unregister(oper),
             ReceiverFlavor::Never(chan) => chan.unregister(oper),
         }
@@ -1446,6 +1462,7 @@ impl<T> SelectHandle for Receiver<T> {
             ReceiverFlavor::List(chan) => chan.receiver().accept(token, cx),
             ReceiverFlavor::Zero(chan) => chan.receiver().accept(token, cx),
             ReceiverFlavor::At(chan) => chan.accept(token, cx),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.accept(token, cx),
             ReceiverFlavor::Never(chan) => chan.accept(token, cx),
         }
@@ -1457,6 +1474,7 @@ impl<T> SelectHandle for Receiver<T> {
             ReceiverFlavor::List(chan) => chan.receiver().is_ready(),
             ReceiverFlavor::Zero(chan) => chan.receiver().is_ready(),
             ReceiverFlavor::At(chan) => chan.is_ready(),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.is_ready(),
             ReceiverFlavor::Never(chan) => chan.is_ready(),
         }
@@ -1468,6 +1486,7 @@ impl<T> SelectHandle for Receiver<T> {
             ReceiverFlavor::List(chan) => chan.receiver().watch(oper, cx),
             ReceiverFlavor::Zero(chan) => chan.receiver().watch(oper, cx),
             ReceiverFlavor::At(chan) => chan.watch(oper, cx),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.watch(oper, cx),
             ReceiverFlavor::Never(chan) => chan.watch(oper, cx),
         }
@@ -1479,6 +1498,7 @@ impl<T> SelectHandle for Receiver<T> {
             ReceiverFlavor::List(chan) => chan.receiver().unwatch(oper),
             ReceiverFlavor::Zero(chan) => chan.receiver().unwatch(oper),
             ReceiverFlavor::At(chan) => chan.unwatch(oper),
+            #[cfg(not(crossbeam_loom))]
             ReceiverFlavor::Tick(chan) => chan.unwatch(oper),
             ReceiverFlavor::Never(chan) => chan.unwatch(oper),
         }
@@ -1503,6 +1523,7 @@ pub(crate) unsafe fn read<T>(r: &Receiver<T>, token: &mut Token) -> Result<T, ()
         ReceiverFlavor::At(chan) => {
             mem::transmute_copy::<Result<Instant, ()>, Result<T, ()>>(&chan.read(token))
         }
+        #[cfg(not(crossbeam_loom))]
         ReceiverFlavor::Tick(chan) => {
             mem::transmute_copy::<Result<Instant, ()>, Result<T, ()>>(&chan.read(token))
         }

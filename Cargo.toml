@@ -86,3 +86,6 @@ members = [
   "crossbeam-skiplist",
   "crossbeam-utils",
 ]
+
+[patch.crates-io]
+loom = { path = "../../tokio-rs/loom" }
