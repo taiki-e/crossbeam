@@ -175,7 +175,20 @@ pub trait Pointable {
     /// # Safety
     ///
     /// The result should be a multiple of `ALIGN`.
-    unsafe fn init(init: Self::Init) -> *mut ();
+    #[deprecated(note = "Use `init_ptr` instead")]
+    unsafe fn init(init: Self::Init) -> usize;
+
+    /// Initializes a with the given initializer.
+    ///
+    /// # Safety
+    ///
+    /// The result should be a multiple of `ALIGN`.
+    unsafe fn init_ptr(init: Self::Init) -> *mut () {
+        #[allow(deprecated)]
+        {
+            Self::init(init) as *mut ()
+        }
+    }
 
     /// Dereferences the given pointer.
     ///
@@ -184,7 +197,20 @@ pub trait Pointable {
     /// - The given `ptr` should have been initialized with [`Pointable::init`].
     /// - `ptr` should not have yet been dropped by [`Pointable::drop`].
     /// - `ptr` should not be mutably dereferenced by [`Pointable::deref_mut`] concurrently.
-    unsafe fn deref<'a>(ptr: *mut ()) -> &'a Self;
+    #[deprecated(note = "Use `deref_ptr` instead")]
+    unsafe fn deref<'a>(ptr: usize) -> &'a Self;
+
+    /// Dereferences the given pointer.
+    ///
+    /// # Safety
+    ///
+    /// - The given `ptr` should have been initialized with [`Pointable::init`].
+    /// - `ptr` should not have yet been dropped by [`Pointable::drop`].
+    /// - `ptr` should not be mutably dereferenced by [`Pointable::deref_mut`] concurrently.
+    unsafe fn deref_ptr<'a>(ptr: *mut ()) -> &'a Self {
+        #[allow(deprecated)]
+        Self::deref(ptr as usize)
+    }
 
     /// Mutably dereferences the given pointer.
     ///
@@ -194,7 +220,21 @@ pub trait Pointable {
     /// - `ptr` should not have yet been dropped by [`Pointable::drop`].
     /// - `ptr` should not be dereferenced by [`Pointable::deref`] or [`Pointable::deref_mut`]
     ///   concurrently.
-    unsafe fn deref_mut<'a>(ptr: *mut ()) -> &'a mut Self;
+    #[deprecated(note = "Use `deref_mut_ptr` instead")]
+    unsafe fn deref_mut<'a>(ptr: usize) -> &'a mut Self;
+
+    /// Mutably dereferences the given pointer.
+    ///
+    /// # Safety
+    ///
+    /// - The given `ptr` should have been initialized with [`Pointable::init`].
+    /// - `ptr` should not have yet been dropped by [`Pointable::drop`].
+    /// - `ptr` should not be dereferenced by [`Pointable::deref`] or [`Pointable::deref_mut`]
+    ///   concurrently.
+    unsafe fn deref_mut_ptr<'a>(ptr: *mut ()) -> &'a mut Self {
+        #[allow(deprecated)]
+        Self::deref_mut(ptr as usize)
+    }
 
     /// Drops the object pointed to by the given pointer.
     ///
@@ -204,7 +244,21 @@ pub trait Pointable {
     /// - `ptr` should not have yet been dropped by [`Pointable::drop`].
     /// - `ptr` should not be dereferenced by [`Pointable::deref`] or [`Pointable::deref_mut`]
     ///   concurrently.
-    unsafe fn drop(ptr: *mut ());
+    #[deprecated(note = "Use `drop_ptr` instead")]
+    unsafe fn drop(ptr: usize);
+
+    /// Drops the object pointed to by the given pointer.
+    ///
+    /// # Safety
+    ///
+    /// - The given `ptr` should have been initialized with [`Pointable::init`].
+    /// - `ptr` should not have yet been dropped by [`Pointable::drop`].
+    /// - `ptr` should not be dereferenced by [`Pointable::deref`] or [`Pointable::deref_mut`]
+    ///   concurrently.
+    unsafe fn drop_ptr(ptr: *mut ()) {
+        #[allow(deprecated)]
+        Self::drop(ptr as usize)
+    }
 }
 
 impl<T> Pointable for T {
@@ -212,19 +266,35 @@ impl<T> Pointable for T {
 
     type Init = T;
 
-    unsafe fn init(init: Self::Init) -> *mut () {
+    unsafe fn init(init: Self::Init) -> usize {
+        Self::init_ptr(init) as usize
+    }
+
+    unsafe fn init_ptr(init: Self::Init) -> *mut () {
         Box::into_raw(Box::new(init)) as *mut ()
     }
 
-    unsafe fn deref<'a>(ptr: *mut ()) -> &'a Self {
+    unsafe fn deref<'a>(ptr: usize) -> &'a Self {
+        Self::deref_ptr(ptr as *mut ())
+    }
+
+    unsafe fn deref_ptr<'a>(ptr: *mut ()) -> &'a Self {
         &*(ptr as *const T)
     }
 
-    unsafe fn deref_mut<'a>(ptr: *mut ()) -> &'a mut Self {
+    unsafe fn deref_mut<'a>(ptr: usize) -> &'a mut Self {
+        Self::deref_mut_ptr(ptr as *mut ())
+    }
+
+    unsafe fn deref_mut_ptr<'a>(ptr: *mut ()) -> &'a mut Self {
         &mut *(ptr as *mut T)
     }
 
-    unsafe fn drop(ptr: *mut ()) {
+    unsafe fn drop(ptr: usize) {
+        Self::drop_ptr(ptr as *mut ())
+    }
+
+    unsafe fn drop_ptr(ptr: *mut ()) {
         drop(Box::from_raw(ptr as *mut T));
     }
 }
@@ -264,7 +334,11 @@ impl<T> Pointable for [MaybeUninit<T>] {
 
     type Init = usize;
 
-    unsafe fn init(len: Self::Init) -> *mut () {
+    unsafe fn init(init: Self::Init) -> usize {
+        Self::init_ptr(init) as usize
+    }
+
+    unsafe fn init_ptr(len: Self::Init) -> *mut () {
         let size = mem::size_of::<Array<T>>() + mem::size_of::<MaybeUninit<T>>() * len;
         let align = mem::align_of::<Array<T>>();
         let layout = alloc::Layout::from_size_align(size, align).unwrap();
@@ -276,17 +350,29 @@ impl<T> Pointable for [MaybeUninit<T>] {
         ptr as *mut ()
     }
 
-    unsafe fn deref<'a>(ptr: *mut ()) -> &'a Self {
+    unsafe fn deref<'a>(ptr: usize) -> &'a Self {
+        Self::deref_ptr(ptr as *mut ())
+    }
+
+    unsafe fn deref_ptr<'a>(ptr: *mut ()) -> &'a Self {
         let array = &*(ptr as *const Array<T>);
         slice::from_raw_parts(array.elements.as_ptr() as *const _, array.len)
     }
 
-    unsafe fn deref_mut<'a>(ptr: *mut ()) -> &'a mut Self {
+    unsafe fn deref_mut<'a>(ptr: usize) -> &'a mut Self {
+        Self::deref_mut_ptr(ptr as *mut ())
+    }
+
+    unsafe fn deref_mut_ptr<'a>(ptr: *mut ()) -> &'a mut Self {
         let array = &*(ptr as *mut Array<T>);
         slice::from_raw_parts_mut(array.elements.as_ptr() as *mut _, array.len)
     }
 
-    unsafe fn drop(ptr: *mut ()) {
+    unsafe fn drop(ptr: usize) {
+        Self::drop_ptr(ptr as *mut ())
+    }
+
+    unsafe fn drop_ptr(ptr: *mut ()) {
         let array = &*(ptr as *mut Array<T>);
         let size = mem::size_of::<Array<T>>() + mem::size_of::<MaybeUninit<T>>() * array.len;
         let align = mem::align_of::<Array<T>>();
@@ -1013,7 +1099,7 @@ impl<T: ?Sized + Pointable> fmt::Pointer for Atomic<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let data = self.data.load(Ordering::SeqCst);
         let (raw, _) = decompose_tag::<T>(data);
-        fmt::Pointer::fmt(&(unsafe { T::deref(raw) as *const _ }), f)
+        fmt::Pointer::fmt(&(unsafe { T::deref_ptr(raw) as *const _ }), f)
     }
 }
 
@@ -1099,7 +1185,24 @@ impl<T> From<*const T> for Atomic<T> {
 // TODO: seal this trait https://github.com/crossbeam-rs/crossbeam/issues/620
 pub trait Pointer<T: ?Sized + Pointable> {
     /// Returns the machine representation of the pointer.
-    fn into_ptr(self) -> *mut ();
+    #[deprecated(note = "Use `into_ptr` instead")]
+    fn into_usize(self) -> usize;
+
+    /// Returns the machine representation of the pointer.
+    ///
+    /// The Self: Sized bound will go away once the deprecated into_usize is removed.
+    #[inline]
+    fn into_ptr(self) -> *mut ()
+    where
+        Self: Sized,
+    {
+        // this fallback impl is only provided to be backwards compatible.
+        // remove when default impl when into_usize is removed.
+        #[allow(deprecated)]
+        {
+            self.into_usize() as *mut ()
+        }
+    }
 
     /// Returns a new pointer pointing to the tagged pointer `data`.
     ///
@@ -1107,7 +1210,26 @@ pub trait Pointer<T: ?Sized + Pointable> {
     ///
     /// The given `data` should have been created by `Pointer::into_ptr()`, and one `data` should
     /// not be converted back by `Pointer::from_ptr()` multiple times.
-    unsafe fn from_ptr(data: *mut ()) -> Self;
+    #[deprecated(note = "Use `from_ptr` instead")]
+    unsafe fn from_usize(data: usize) -> Self;
+
+    /// Returns a new pointer pointing to the tagged pointer `data`.
+    ///
+    /// The Self: Sized bound will go away once the deprecated from_usize is removed.
+    ///
+    /// # Safety
+    ///
+    /// The given `data` should have been created by `Pointer::into_ptr()`, and one `data` should
+    /// not be converted back by `Pointer::from_ptr()` multiple times.
+    unsafe fn from_ptr(data: *mut ()) -> Self
+    where
+        Self: Sized,
+    {
+        // this fallback impl is only provided to be backwards compatible.
+        // remove when default impl when from_usize is removed.
+        #[allow(deprecated)]
+        Self::from_usize(data as usize)
+    }
 }
 
 /// An owned heap-allocated object.
@@ -1123,10 +1245,25 @@ pub struct Owned<T: ?Sized + Pointable> {
 
 impl<T: ?Sized + Pointable> Pointer<T> for Owned<T> {
     #[inline]
+    fn into_usize(self) -> usize {
+        self.into_ptr() as usize
+    }
+
+    #[inline]
     fn into_ptr(self) -> *mut () {
         let data = self.data;
         mem::forget(self);
         data
+    }
+
+    /// Returns a new pointer pointing to the tagged pointer `data`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the pointer is null, but only in debug mode.
+    #[inline]
+    unsafe fn from_usize(data: usize) -> Self {
+        Self::from_ptr(data as *mut ())
     }
 
     /// Returns a new pointer pointing to the tagged pointer `data`.
@@ -1215,7 +1352,7 @@ impl<T: ?Sized + Pointable> Owned<T> {
     /// let o = Owned::<i32>::init(1234);
     /// ```
     pub fn init(init: T::Init) -> Owned<T> {
-        unsafe { Self::from_ptr(T::init(init)) }
+        unsafe { Self::from_ptr(T::init_ptr(init)) }
     }
 
     /// Converts the owned pointer into a [`Shared`].
@@ -1272,7 +1409,7 @@ impl<T: ?Sized + Pointable> Drop for Owned<T> {
     fn drop(&mut self) {
         let (raw, _) = decompose_tag::<T>(self.data);
         unsafe {
-            T::drop(raw);
+            T::drop_ptr(raw);
         }
     }
 }
@@ -1299,14 +1436,14 @@ impl<T: ?Sized + Pointable> Deref for Owned<T> {
 
     fn deref(&self) -> &T {
         let (raw, _) = decompose_tag::<T>(self.data);
-        unsafe { T::deref(raw) }
+        unsafe { T::deref_ptr(raw) }
     }
 }
 
 impl<T: ?Sized + Pointable> DerefMut for Owned<T> {
     fn deref_mut(&mut self) -> &mut T {
         let (raw, _) = decompose_tag::<T>(self.data);
-        unsafe { T::deref_mut(raw) }
+        unsafe { T::deref_mut_ptr(raw) }
     }
 }
 
@@ -1383,8 +1520,18 @@ impl<T: ?Sized + Pointable> Copy for Shared<'_, T> {}
 
 impl<T: ?Sized + Pointable> Pointer<T> for Shared<'_, T> {
     #[inline]
+    fn into_usize(self) -> usize {
+        self.into_ptr() as usize
+    }
+
+    #[inline]
     fn into_ptr(self) -> *mut () {
         self.data
+    }
+
+    #[inline]
+    unsafe fn from_usize(data: usize) -> Self {
+        Self::from_ptr(data as *mut ())
     }
 
     #[inline]
@@ -1492,7 +1639,7 @@ impl<'g, T: ?Sized + Pointable> Shared<'g, T> {
     /// ```
     pub unsafe fn deref(&self) -> &'g T {
         let (raw, _) = decompose_tag::<T>(self.data);
-        T::deref(raw)
+        T::deref_ptr(raw)
     }
 
     /// Dereferences the pointer.
@@ -1534,7 +1681,7 @@ impl<'g, T: ?Sized + Pointable> Shared<'g, T> {
     /// ```
     pub unsafe fn deref_mut(&mut self) -> &'g mut T {
         let (raw, _) = decompose_tag::<T>(self.data);
-        T::deref_mut(raw)
+        T::deref_mut_ptr(raw)
     }
 
     /// Converts the pointer to a reference.
@@ -1574,7 +1721,7 @@ impl<'g, T: ?Sized + Pointable> Shared<'g, T> {
         if raw.is_null() {
             None
         } else {
-            Some(T::deref(raw))
+            Some(T::deref_ptr(raw))
         }
     }
 
