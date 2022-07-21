@@ -82,7 +82,7 @@ where
 {
     /// Returns the entry with the smallest key.
     ///
-    /// This function returns an [`Entry`] which
+    /// This function returns an [`Cursor`] which
     /// can be used to access the key's associated value.
     ///
     /// # Example
@@ -95,14 +95,14 @@ where
     /// numbers.insert(6, "six");
     /// assert_eq!(*numbers.front().unwrap().value(), "five");
     /// ```
-    pub fn front(&self) -> Option<Entry<'_, K, V>> {
+    pub fn front(&self) -> Option<Cursor<'_, K, V>> {
         let guard = &epoch::pin();
-        try_pin_loop(|| self.inner.front(guard)).map(Entry::new)
+        try_pin_loop(|| self.inner.front(guard)).map(Cursor::new)
     }
 
     /// Returns the entry with the largest key.
     ///
-    /// This function returns an [`Entry`] which
+    /// This function returns an [`Cursor`] which
     /// can be used to access the key's associated value.
     ///
     /// # Example
@@ -115,9 +115,9 @@ where
     /// numbers.insert(6, "six");
     /// assert_eq!(*numbers.back().unwrap().value(), "six");
     /// ```
-    pub fn back(&self) -> Option<Entry<'_, K, V>> {
+    pub fn back(&self) -> Option<Cursor<'_, K, V>> {
         let guard = &epoch::pin();
-        try_pin_loop(|| self.inner.back(guard)).map(Entry::new)
+        try_pin_loop(|| self.inner.back(guard)).map(Cursor::new)
     }
 
     /// Returns `true` if the map contains a value for the specified key.
@@ -143,7 +143,7 @@ where
 
     /// Returns an entry with the specified `key`.
     ///
-    /// This function returns an [`Entry`] which
+    /// This function returns an [`Cursor`] which
     /// can be used to access the key's associated value.
     ///
     /// # Example
@@ -156,20 +156,20 @@ where
     /// numbers.insert("six", 6);
     /// assert_eq!(*numbers.get("six").unwrap().value(), 6);
     /// ```
-    pub fn get<Q>(&self, key: &Q) -> Option<Entry<'_, K, V>>
+    pub fn get<Q>(&self, key: &Q) -> Option<Cursor<'_, K, V>>
     where
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
         let guard = &epoch::pin();
-        try_pin_loop(|| self.inner.get(key, guard)).map(Entry::new)
+        try_pin_loop(|| self.inner.get(key, guard)).map(Cursor::new)
     }
 
-    /// Returns an `Entry` pointing to the lowest element whose key is above
+    /// Returns an `Cursor` pointing to the lowest element whose key is above
     /// the given bound. If no such element is found then `None` is
     /// returned.
     ///
-    /// This function returns an [`Entry`] which
+    /// This function returns an [`Cursor`] which
     /// can be used to access the key's associated value.
     ///
     /// # Example
@@ -191,20 +191,20 @@ where
     /// let greater_than_thirteen = numbers.lower_bound(Excluded(&13));
     /// assert!(greater_than_thirteen.is_none());
     /// ```
-    pub fn lower_bound<'a, Q>(&'a self, bound: Bound<&Q>) -> Option<Entry<'a, K, V>>
+    pub fn lower_bound<'a, Q>(&'a self, bound: Bound<&Q>) -> Option<Cursor<'a, K, V>>
     where
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
         let guard = &epoch::pin();
-        try_pin_loop(|| self.inner.lower_bound(bound, guard)).map(Entry::new)
+        try_pin_loop(|| self.inner.lower_bound(bound, guard)).map(Cursor::new)
     }
 
-    /// Returns an `Entry` pointing to the highest element whose key is below
+    /// Returns an `Cursor` pointing to the highest element whose key is below
     /// the given bound. If no such element is found then `None` is
     /// returned.
     ///
-    /// This function returns an [`Entry`] which
+    /// This function returns an [`Cursor`] which
     /// can be used to access the key's associated value.
     ///
     /// # Example
@@ -223,18 +223,18 @@ where
     /// let less_than_six = numbers.upper_bound(Excluded(&6));
     /// assert!(less_than_six.is_none());
     /// ```
-    pub fn upper_bound<'a, Q>(&'a self, bound: Bound<&Q>) -> Option<Entry<'a, K, V>>
+    pub fn upper_bound<'a, Q>(&'a self, bound: Bound<&Q>) -> Option<Cursor<'a, K, V>>
     where
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
         let guard = &epoch::pin();
-        try_pin_loop(|| self.inner.upper_bound(bound, guard)).map(Entry::new)
+        try_pin_loop(|| self.inner.upper_bound(bound, guard)).map(Cursor::new)
     }
 
     /// Finds an entry with the specified key, or inserts a new `key`-`value` pair if none exist.
     ////
-    /// This function returns an [`Entry`] which
+    /// This function returns an [`Cursor`] which
     /// can be used to access the key's associated value.
     ///
     /// # Example
@@ -249,9 +249,9 @@ where
     /// let jobs_age = ages.get_or_insert("Steve Jobs", -1);
     /// assert_eq!(*jobs_age.value(), 65);
     /// ```
-    pub fn get_or_insert(&self, key: K, value: V) -> Entry<'_, K, V> {
+    pub fn get_or_insert(&self, key: K, value: V) -> Cursor<'_, K, V> {
         let guard = &epoch::pin();
-        Entry::new(self.inner.get_or_insert(key, value, guard))
+        Cursor::new(self.inner.get_or_insert(key, value, guard))
     }
 
     /// Finds an entry with the specified key, or inserts a new `key`-`value` pair if none exist,
@@ -279,18 +279,18 @@ where
     /// let jobs_age = ages.get_or_insert_with("Steve Jobs", || -1);
     /// assert_eq!(*jobs_age.value(), 65);
     /// ```
-    pub fn get_or_insert_with<F>(&self, key: K, value_fn: F) -> Entry<'_, K, V>
+    pub fn get_or_insert_with<F>(&self, key: K, value_fn: F) -> Cursor<'_, K, V>
     where
         F: FnOnce() -> V,
     {
         let guard = &epoch::pin();
-        Entry::new(self.inner.get_or_insert_with(key, value_fn, guard))
+        Cursor::new(self.inner.get_or_insert_with(key, value_fn, guard))
     }
 
     /// Returns an iterator over all entries in the map,
     /// sorted by key.
     ///
-    /// This iterator returns [`Entry`]s which
+    /// This iterator returns [`Cursor`]s which
     /// can be used to access keys and their associated values.
     ///
     /// # Examples
@@ -317,7 +317,7 @@ where
 
     /// Returns an iterator over a subset of entries in the map.
     ///
-    /// This iterator returns [`Entry`]s which
+    /// This iterator returns [`Cursor`]s which
     /// can be used to access keys and their associated values.
     ///
     /// # Example
@@ -358,7 +358,7 @@ where
     /// If there is an existing entry with this key, it will be removed before inserting the new
     /// one.
     ///
-    /// This function returns an [`Entry`] which
+    /// This function returns an [`Cursor`] which
     /// can be used to access the inserted key's associated value.
     ///
     /// # Example
@@ -370,9 +370,9 @@ where
     ///
     /// assert_eq!(*map.get("key").unwrap().value(), "value");
     /// ```
-    pub fn insert(&self, key: K, value: V) -> Entry<'_, K, V> {
+    pub fn insert(&self, key: K, value: V) -> Cursor<'_, K, V> {
         let guard = &epoch::pin();
-        Entry::new(self.inner.insert(key, value, guard))
+        Cursor::new(self.inner.insert(key, value, guard))
     }
 
     /// Removes an entry with the specified `key` from the map and returns it.
@@ -380,7 +380,7 @@ where
     /// The value will not actually be dropped until all references to it have gone
     /// out of scope.
     ///
-    /// This function returns an [`Entry`] which
+    /// This function returns an [`Cursor`] which
     /// can be used to access the removed key's associated value.
     ///
     /// # Example
@@ -393,13 +393,13 @@ where
     /// map.insert("key", "value");
     /// assert_eq!(*map.remove("key").unwrap().value(), "value");
     /// ```
-    pub fn remove<Q>(&self, key: &Q) -> Option<Entry<'_, K, V>>
+    pub fn remove<Q>(&self, key: &Q) -> Option<Cursor<'_, K, V>>
     where
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
         let guard = &epoch::pin();
-        self.inner.remove(key, guard).map(Entry::new)
+        self.inner.remove(key, guard).map(Cursor::new)
     }
 
     /// Removes the entry with the lowest key
@@ -424,9 +424,9 @@ where
     /// // All entries have been removed now.
     /// assert!(numbers.is_empty());
     /// ```
-    pub fn pop_front(&self) -> Option<Entry<'_, K, V>> {
+    pub fn pop_front(&self) -> Option<Cursor<'_, K, V>> {
         let guard = &epoch::pin();
-        self.inner.pop_front(guard).map(Entry::new)
+        self.inner.pop_front(guard).map(Cursor::new)
     }
 
     /// Removes the entry with the greatest key from the map.
@@ -451,9 +451,9 @@ where
     /// // All entries have been removed now.
     /// assert!(numbers.is_empty());
     /// ```
-    pub fn pop_back(&self) -> Option<Entry<'_, K, V>> {
+    pub fn pop_back(&self) -> Option<Cursor<'_, K, V>> {
         let guard = &epoch::pin();
-        self.inner.pop_back(guard).map(Entry::new)
+        self.inner.pop_back(guard).map(Cursor::new)
     }
 
     /// Removes all entries from the map.
@@ -506,7 +506,7 @@ impl<'a, K, V> IntoIterator for &'a SkipMap<K, V>
 where
     K: Ord,
 {
-    type Item = Entry<'a, K, V>;
+    type Item = Cursor<'a, K, V>;
     type IntoIter = Iter<'a, K, V>;
 
     fn into_iter(self) -> Iter<'a, K, V> {
@@ -531,13 +531,13 @@ where
 }
 
 /// A reference-counted entry in a map.
-pub struct Entry<'a, K, V> {
+pub struct Cursor<'a, K, V> {
     inner: ManuallyDrop<base::RefEntry<'a, K, V>>,
 }
 
-impl<'a, K, V> Entry<'a, K, V> {
-    fn new(inner: base::RefEntry<'a, K, V>) -> Entry<'a, K, V> {
-        Entry {
+impl<'a, K, V> Cursor<'a, K, V> {
+    fn new(inner: base::RefEntry<'a, K, V>) -> Cursor<'a, K, V> {
+        Cursor {
             inner: ManuallyDrop::new(inner),
         }
     }
@@ -558,7 +558,7 @@ impl<'a, K, V> Entry<'a, K, V> {
     }
 }
 
-impl<K, V> Drop for Entry<'_, K, V> {
+impl<K, V> Drop for Cursor<'_, K, V> {
     fn drop(&mut self) {
         unsafe {
             ManuallyDrop::into_inner(ptr::read(&self.inner)).release_with_pin(epoch::pin);
@@ -566,7 +566,7 @@ impl<K, V> Drop for Entry<'_, K, V> {
     }
 }
 
-impl<'a, K, V> Entry<'a, K, V>
+impl<'a, K, V> Cursor<'a, K, V>
 where
     K: Ord,
 {
@@ -583,19 +583,19 @@ where
     }
 
     /// Returns the next entry in the map.
-    pub fn next(&self) -> Option<Entry<'a, K, V>> {
+    pub fn next(&self) -> Option<Cursor<'a, K, V>> {
         let guard = &epoch::pin();
-        self.inner.next(guard).map(Entry::new)
+        self.inner.next(guard).map(Cursor::new)
     }
 
     /// Returns the previous entry in the map.
-    pub fn prev(&self) -> Option<Entry<'a, K, V>> {
+    pub fn prev(&self) -> Option<Cursor<'a, K, V>> {
         let guard = &epoch::pin();
-        self.inner.prev(guard).map(Entry::new)
+        self.inner.prev(guard).map(Cursor::new)
     }
 }
 
-impl<K, V> Entry<'_, K, V>
+impl<K, V> Cursor<'_, K, V>
 where
     K: Ord + Send + 'static,
     V: Send + 'static,
@@ -609,21 +609,21 @@ where
     }
 }
 
-impl<'a, K, V> Clone for Entry<'a, K, V> {
-    fn clone(&self) -> Entry<'a, K, V> {
-        Entry {
+impl<'a, K, V> Clone for Cursor<'a, K, V> {
+    fn clone(&self) -> Cursor<'a, K, V> {
+        Cursor {
             inner: self.inner.clone(),
         }
     }
 }
 
-impl<K, V> fmt::Debug for Entry<'_, K, V>
+impl<K, V> fmt::Debug for Cursor<'_, K, V>
 where
     K: fmt::Debug,
     V: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Entry")
+        f.debug_tuple("Cursor")
             .field(self.key())
             .field(self.value())
             .finish()
@@ -658,11 +658,11 @@ impl<'a, K, V> Iterator for Iter<'a, K, V>
 where
     K: Ord,
 {
-    type Item = Entry<'a, K, V>;
+    type Item = Cursor<'a, K, V>;
 
-    fn next(&mut self) -> Option<Entry<'a, K, V>> {
+    fn next(&mut self) -> Option<Cursor<'a, K, V>> {
         let guard = &epoch::pin();
-        self.inner.next(guard).map(Entry::new)
+        self.inner.next(guard).map(Cursor::new)
     }
 }
 
@@ -670,9 +670,9 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V>
 where
     K: Ord,
 {
-    fn next_back(&mut self) -> Option<Entry<'a, K, V>> {
+    fn next_back(&mut self) -> Option<Cursor<'a, K, V>> {
         let guard = &epoch::pin();
-        self.inner.next_back(guard).map(Entry::new)
+        self.inner.next_back(guard).map(Cursor::new)
     }
 }
 
@@ -705,11 +705,11 @@ where
     R: RangeBounds<Q>,
     Q: Ord + ?Sized,
 {
-    type Item = Entry<'a, K, V>;
+    type Item = Cursor<'a, K, V>;
 
-    fn next(&mut self) -> Option<Entry<'a, K, V>> {
+    fn next(&mut self) -> Option<Cursor<'a, K, V>> {
         let guard = &epoch::pin();
-        self.inner.next(guard).map(Entry::new)
+        self.inner.next(guard).map(Cursor::new)
     }
 }
 
@@ -719,9 +719,9 @@ where
     R: RangeBounds<Q>,
     Q: Ord + ?Sized,
 {
-    fn next_back(&mut self) -> Option<Entry<'a, K, V>> {
+    fn next_back(&mut self) -> Option<Cursor<'a, K, V>> {
         let guard = &epoch::pin();
-        self.inner.next_back(guard).map(Entry::new)
+        self.inner.next_back(guard).map(Cursor::new)
     }
 }
 

@@ -83,7 +83,7 @@ struct Node<K, V> {
 
     /// Keeps the reference count and the height of its tower.
     ///
-    /// The reference count is equal to the number of `Entry`s pointing to this node, plus the
+    /// The reference count is equal to the number of `Cursor`s pointing to this node, plus the
     /// number of levels in which this node is installed.
     refs_and_height: AtomicUsize,
 
@@ -378,22 +378,22 @@ impl<K, V> SkipList<K, V>
 where
     K: Ord,
 {
-    /// Returns the entry with the smallest key.
-    pub fn front<'a: 'g, 'g>(&'a self, guard: &'g Guard) -> Option<Entry<'a, 'g, K, V>> {
+    /// Returns the cursor pointing to the smallest key.
+    pub fn front<'a: 'g, 'g>(&'a self, guard: &'g Guard) -> Option<Cursor<'a, 'g, K, V>> {
         self.check_guard(guard);
         let n = self.next_node(&self.head, Bound::Unbounded, guard)?;
-        Some(Entry {
+        Some(Cursor {
             parent: self,
             node: n,
             guard,
         })
     }
 
-    /// Returns the entry with the largest key.
-    pub fn back<'a: 'g, 'g>(&'a self, guard: &'g Guard) -> Option<Entry<'a, 'g, K, V>> {
+    /// Returns the cursor pointing to the largest key.
+    pub fn back<'a: 'g, 'g>(&'a self, guard: &'g Guard) -> Option<Cursor<'a, 'g, K, V>> {
         self.check_guard(guard);
         let n = self.search_bound(Bound::Unbounded, true, guard)?;
-        Some(Entry {
+        Some(Cursor {
             parent: self,
             node: n,
             guard,
@@ -409,8 +409,8 @@ where
         self.get(key, guard).is_some()
     }
 
-    /// Returns an entry with the specified `key`.
-    pub fn get<'a: 'g, 'g, Q>(&'a self, key: &Q, guard: &'g Guard) -> Option<Entry<'a, 'g, K, V>>
+    /// Returns a cursor pointing to the specified `key`.
+    pub fn get<'a: 'g, 'g, Q>(&'a self, key: &Q, guard: &'g Guard) -> Option<Cursor<'a, 'g, K, V>>
     where
         K: Borrow<Q>,
         Q: Ord + ?Sized,
@@ -420,49 +420,49 @@ where
         if n.key.borrow() != key {
             return None;
         }
-        Some(Entry {
+        Some(Cursor {
             parent: self,
             node: n,
             guard,
         })
     }
 
-    /// Returns an `Entry` pointing to the lowest element whose key is above
+    /// Returns a `Cursor` pointing to the lowest element whose key is above
     /// the given bound. If no such element is found then `None` is
     /// returned.
     pub fn lower_bound<'a: 'g, 'g, Q>(
         &'a self,
         bound: Bound<&Q>,
         guard: &'g Guard,
-    ) -> Option<Entry<'a, 'g, K, V>>
+    ) -> Option<Cursor<'a, 'g, K, V>>
     where
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
         self.check_guard(guard);
         let n = self.search_bound(bound, false, guard)?;
-        Some(Entry {
+        Some(Cursor {
             parent: self,
             node: n,
             guard,
         })
     }
 
-    /// Returns an `Entry` pointing to the highest element whose key is below
+    /// Returns a `Cursor` pointing to the highest element whose key is below
     /// the given bound. If no such element is found then `None` is
     /// returned.
     pub fn upper_bound<'a: 'g, 'g, Q>(
         &'a self,
         bound: Bound<&Q>,
         guard: &'g Guard,
-    ) -> Option<Entry<'a, 'g, K, V>>
+    ) -> Option<Cursor<'a, 'g, K, V>>
     where
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
         self.check_guard(guard);
         let n = self.search_bound(bound, true, guard)?;
-        Some(Entry {
+        Some(Cursor {
             parent: self,
             node: n,
             guard,
@@ -1287,15 +1287,15 @@ impl<K, V> IntoIterator for SkipList<K, V> {
 /// An entry in a skip list, protected by a `Guard`.
 ///
 /// The lifetimes of the key and value are the same as that of the `Guard`
-/// used when creating the `Entry` (`'g`). This lifetime is also constrained to
+/// used when creating the `Cursor` (`'g`). This lifetime is also constrained to
 /// not outlive the `SkipList`.
-pub struct Entry<'a: 'g, 'g, K, V> {
+pub struct Cursor<'a: 'g, 'g, K, V> {
     parent: &'a SkipList<K, V>,
     node: &'g Node<K, V>,
     guard: &'g Guard,
 }
 
-impl<'a: 'g, 'g, K: 'a, V: 'a> Entry<'a, 'g, K, V> {
+impl<'a: 'g, 'g, K: 'a, V: 'a> Cursor<'a, 'g, K, V> {
     /// Returns `true` if the entry is removed from the skip list.
     pub fn is_removed(&self) -> bool {
         self.node.is_removed()
@@ -1326,7 +1326,7 @@ impl<'a: 'g, 'g, K: 'a, V: 'a> Entry<'a, 'g, K, V> {
     }
 }
 
-impl<'a: 'g, 'g, K, V> Entry<'a, 'g, K, V>
+impl<'a: 'g, 'g, K, V> Cursor<'a, 'g, K, V>
 where
     K: Ord + Send + 'static,
     V: Send + 'static,
@@ -1351,9 +1351,9 @@ where
     }
 }
 
-impl<'a: 'g, 'g, K, V> Clone for Entry<'a, 'g, K, V> {
-    fn clone(&self) -> Entry<'a, 'g, K, V> {
-        Entry {
+impl<'a: 'g, 'g, K, V> Clone for Cursor<'a, 'g, K, V> {
+    fn clone(&self) -> Cursor<'a, 'g, K, V> {
+        Cursor {
             parent: self.parent,
             node: self.node,
             guard: self.guard,
@@ -1361,20 +1361,20 @@ impl<'a: 'g, 'g, K, V> Clone for Entry<'a, 'g, K, V> {
     }
 }
 
-impl<K, V> fmt::Debug for Entry<'_, '_, K, V>
+impl<K, V> fmt::Debug for Cursor<'_, '_, K, V>
 where
     K: fmt::Debug,
     V: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Entry")
+        f.debug_tuple("Cursor")
             .field(self.key())
             .field(self.value())
             .finish()
     }
 }
 
-impl<'a: 'g, 'g, K, V> Entry<'a, 'g, K, V>
+impl<'a: 'g, 'g, K, V> Cursor<'a, 'g, K, V>
 where
     K: Ord,
 {
@@ -1390,13 +1390,13 @@ where
     }
 
     /// Returns the next entry in the skip list.
-    pub fn next(&self) -> Option<Entry<'a, 'g, K, V>> {
+    pub fn next(&self) -> Option<Cursor<'a, 'g, K, V>> {
         let n = self.parent.next_node(
             &self.node.tower,
             Bound::Excluded(&self.node.key),
             self.guard,
         )?;
-        Some(Entry {
+        Some(Cursor {
             parent: self.parent,
             node: n,
             guard: self.guard,
@@ -1415,11 +1415,11 @@ where
     }
 
     /// Returns the previous entry in the skip list.
-    pub fn prev(&self) -> Option<Entry<'a, 'g, K, V>> {
+    pub fn prev(&self) -> Option<Cursor<'a, 'g, K, V>> {
         let n = self
             .parent
             .search_bound(Bound::Excluded(&self.node.key), true, self.guard)?;
-        Some(Entry {
+        Some(Cursor {
             parent: self.parent,
             node: n,
             guard: self.guard,
@@ -1616,9 +1616,9 @@ impl<'a: 'g, 'g, K: 'a, V: 'a> Iterator for Iter<'a, 'g, K, V>
 where
     K: Ord,
 {
-    type Item = Entry<'a, 'g, K, V>;
+    type Item = Cursor<'a, 'g, K, V>;
 
-    fn next(&mut self) -> Option<Entry<'a, 'g, K, V>> {
+    fn next(&mut self) -> Option<Cursor<'a, 'g, K, V>> {
         self.head = match self.head {
             Some(n) => self
                 .parent
@@ -1633,7 +1633,7 @@ where
                 self.tail = None;
             }
         }
-        self.head.map(|n| Entry {
+        self.head.map(|n| Cursor {
             parent: self.parent,
             node: n,
             guard: self.guard,
@@ -1645,7 +1645,7 @@ impl<'a: 'g, 'g, K: 'a, V: 'a> DoubleEndedIterator for Iter<'a, 'g, K, V>
 where
     K: Ord,
 {
-    fn next_back(&mut self) -> Option<Entry<'a, 'g, K, V>> {
+    fn next_back(&mut self) -> Option<Cursor<'a, 'g, K, V>> {
         self.tail = match self.tail {
             Some(n) => self
                 .parent
@@ -1658,7 +1658,7 @@ where
                 self.tail = None;
             }
         }
-        self.tail.map(|n| Entry {
+        self.tail.map(|n| Cursor {
             parent: self.parent,
             node: n,
             guard: self.guard,
@@ -1798,9 +1798,9 @@ where
     R: RangeBounds<Q>,
     Q: Ord + ?Sized,
 {
-    type Item = Entry<'a, 'g, K, V>;
+    type Item = Cursor<'a, 'g, K, V>;
 
-    fn next(&mut self) -> Option<Entry<'a, 'g, K, V>> {
+    fn next(&mut self) -> Option<Cursor<'a, 'g, K, V>> {
         self.head = match self.head {
             Some(n) => self
                 .parent
@@ -1819,7 +1819,7 @@ where
                 self.tail = None;
             }
         }
-        self.head.map(|n| Entry {
+        self.head.map(|n| Cursor {
             parent: self.parent,
             node: n,
             guard: self.guard,
@@ -1833,7 +1833,7 @@ where
     R: RangeBounds<Q>,
     Q: Ord + ?Sized,
 {
-    fn next_back(&mut self) -> Option<Entry<'a, 'g, K, V>> {
+    fn next_back(&mut self) -> Option<Cursor<'a, 'g, K, V>> {
         self.tail = match self.tail {
             Some(n) => self
                 .parent
@@ -1852,7 +1852,7 @@ where
                 self.tail = None;
             }
         }
-        self.tail.map(|n| Entry {
+        self.tail.map(|n| Cursor {
             parent: self.parent,
             node: n,
             guard: self.guard,
@@ -2066,7 +2066,7 @@ impl<K, V> fmt::Debug for IntoIter<K, V> {
 /// returned.
 pub(crate) fn try_pin_loop<'a: 'g, 'g, F, K, V>(mut f: F) -> Option<RefEntry<'a, K, V>>
 where
-    F: FnMut() -> Option<Entry<'a, 'g, K, V>>,
+    F: FnMut() -> Option<Cursor<'a, 'g, K, V>>,
 {
     loop {
         if let Some(e) = f()?.pin() {

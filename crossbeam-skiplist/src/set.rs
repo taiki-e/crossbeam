@@ -76,7 +76,7 @@ impl<T> SkipSet<T>
 where
     T: Ord,
 {
-    /// Returns the entry with the smallest key.
+    /// Returns the cursor pointing to the smallest key.
     ///
     /// # Example
     ///
@@ -89,11 +89,11 @@ where
     /// set.insert(2);
     /// assert_eq!(*set.front().unwrap(), 1);
     /// ```
-    pub fn front(&self) -> Option<Entry<'_, T>> {
-        self.inner.front().map(Entry::new)
+    pub fn front(&self) -> Option<Cursor<'_, T>> {
+        self.inner.front().map(Cursor::new)
     }
 
-    /// Returns the entry with the largest key.
+    /// Returns the cursor pointing to the largest key.
     ///
     /// # Example
     ///
@@ -106,8 +106,8 @@ where
     /// set.insert(2);
     /// assert_eq!(*set.back().unwrap(), 2);
     /// ```
-    pub fn back(&self) -> Option<Entry<'_, T>> {
-        self.inner.back().map(Entry::new)
+    pub fn back(&self) -> Option<Cursor<'_, T>> {
+        self.inner.back().map(Cursor::new)
     }
 
     /// Returns `true` if the set contains a value for the specified key.
@@ -129,7 +129,7 @@ where
         self.inner.contains_key(key)
     }
 
-    /// Returns an entry with the specified `key`.
+    /// Returns a cursor pointing to the specified `key`.
     ///
     /// # Example
     ///
@@ -140,15 +140,15 @@ where
     /// assert_eq!(*set.get(&3).unwrap(), 3);
     /// assert!(set.get(&4).is_none());
     /// ```
-    pub fn get<Q>(&self, key: &Q) -> Option<Entry<'_, T>>
+    pub fn get<Q>(&self, key: &Q) -> Option<Cursor<'_, T>>
     where
         T: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        self.inner.get(key).map(Entry::new)
+        self.inner.get(key).map(Cursor::new)
     }
 
-    /// Returns an `Entry` pointing to the lowest element whose key is above
+    /// Returns a `Cursor` pointing to the lowest element whose key is above
     /// the given bound. If no such element is found then `None` is
     /// returned.
     ///
@@ -172,15 +172,15 @@ where
     /// let greater_than_thirteen = set.lower_bound(Excluded(&13));
     /// assert!(greater_than_thirteen.is_none());
     /// ```
-    pub fn lower_bound<'a, Q>(&'a self, bound: Bound<&Q>) -> Option<Entry<'a, T>>
+    pub fn lower_bound<'a, Q>(&'a self, bound: Bound<&Q>) -> Option<Cursor<'a, T>>
     where
         T: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        self.inner.lower_bound(bound).map(Entry::new)
+        self.inner.lower_bound(bound).map(Cursor::new)
     }
 
-    /// Returns an `Entry` pointing to the highest element whose key is below
+    /// Returns a `Cursor` pointing to the highest element whose key is below
     /// the given bound. If no such element is found then `None` is
     /// returned.
     ///
@@ -201,15 +201,15 @@ where
     /// let less_than_six = set.upper_bound(Excluded(&6));
     /// assert!(less_than_six.is_none());
     /// ```
-    pub fn upper_bound<'a, Q>(&'a self, bound: Bound<&Q>) -> Option<Entry<'a, T>>
+    pub fn upper_bound<'a, Q>(&'a self, bound: Bound<&Q>) -> Option<Cursor<'a, T>>
     where
         T: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        self.inner.upper_bound(bound).map(Entry::new)
+        self.inner.upper_bound(bound).map(Cursor::new)
     }
 
-    /// Finds an entry with the specified key, or inserts a new `key`-`value` pair if none exist.
+    /// Finds an entry with the specified key, or inserts a new `key`-`value` pair if none exists.
     ///
     /// # Example
     ///
@@ -220,8 +220,8 @@ where
     /// let entry = set.get_or_insert(2);
     /// assert_eq!(*entry, 2);
     /// ```
-    pub fn get_or_insert(&self, key: T) -> Entry<'_, T> {
-        Entry::new(self.inner.get_or_insert(key, ()))
+    pub fn get_or_insert(&self, key: T) -> Cursor<'_, T> {
+        Cursor::new(self.inner.get_or_insert(key, ()))
     }
 
     /// Returns an iterator over all entries in the set.
@@ -295,8 +295,8 @@ where
     /// set.insert(2);
     /// assert_eq!(*set.get(&2).unwrap(), 2);
     /// ```
-    pub fn insert(&self, key: T) -> Entry<'_, T> {
-        Entry::new(self.inner.insert(key, ()))
+    pub fn insert(&self, key: T) -> Cursor<'_, T> {
+        Cursor::new(self.inner.insert(key, ()))
     }
 
     /// Removes an entry with the specified key from the set and returns it.
@@ -314,12 +314,12 @@ where
     /// assert_eq!(*set.remove(&2).unwrap(), 2);
     /// assert!(set.remove(&2).is_none());
     /// ```
-    pub fn remove<Q>(&self, key: &Q) -> Option<Entry<'_, T>>
+    pub fn remove<Q>(&self, key: &Q) -> Option<Cursor<'_, T>>
     where
         T: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        self.inner.remove(key).map(Entry::new)
+        self.inner.remove(key).map(Cursor::new)
     }
 
     /// Removes an entry from the front of the set.
@@ -343,8 +343,8 @@ where
     /// // All entries have been removed now.
     /// assert!(set.is_empty());
     /// ```
-    pub fn pop_front(&self) -> Option<Entry<'_, T>> {
-        self.inner.pop_front().map(Entry::new)
+    pub fn pop_front(&self) -> Option<Cursor<'_, T>> {
+        self.inner.pop_front().map(Cursor::new)
     }
 
     /// Removes an entry from the back of the set.
@@ -368,8 +368,8 @@ where
     /// // All entries have been removed now.
     /// assert!(set.is_empty());
     /// ```
-    pub fn pop_back(&self) -> Option<Entry<'_, T>> {
-        self.inner.pop_back().map(Entry::new)
+    pub fn pop_back(&self) -> Option<Cursor<'_, T>> {
+        self.inner.pop_back().map(Cursor::new)
     }
 
     /// Iterates over the set and removes every entry.
@@ -421,7 +421,7 @@ impl<'a, T> IntoIterator for &'a SkipSet<T>
 where
     T: Ord,
 {
-    type Item = Entry<'a, T>;
+    type Item = Cursor<'a, T>;
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Iter<'a, T> {
@@ -446,13 +446,13 @@ where
 }
 
 /// A reference-counted entry in a set.
-pub struct Entry<'a, T> {
-    inner: map::Entry<'a, T, ()>,
+pub struct Cursor<'a, T> {
+    inner: map::Cursor<'a, T, ()>,
 }
 
-impl<'a, T> Entry<'a, T> {
-    fn new(inner: map::Entry<'a, T, ()>) -> Entry<'a, T> {
-        Entry { inner }
+impl<'a, T> Cursor<'a, T> {
+    fn new(inner: map::Cursor<'a, T, ()>) -> Cursor<'a, T> {
+        Cursor { inner }
     }
 
     /// Returns a reference to the value.
@@ -466,7 +466,7 @@ impl<'a, T> Entry<'a, T> {
     }
 }
 
-impl<'a, T> Entry<'a, T>
+impl<'a, T> Cursor<'a, T>
 where
     T: Ord,
 {
@@ -481,17 +481,17 @@ where
     }
 
     /// Returns the next entry in the set.
-    pub fn next(&self) -> Option<Entry<'a, T>> {
-        self.inner.next().map(Entry::new)
+    pub fn next(&self) -> Option<Cursor<'a, T>> {
+        self.inner.next().map(Cursor::new)
     }
 
     /// Returns the previous entry in the set.
-    pub fn prev(&self) -> Option<Entry<'a, T>> {
-        self.inner.prev().map(Entry::new)
+    pub fn prev(&self) -> Option<Cursor<'a, T>> {
+        self.inner.prev().map(Cursor::new)
     }
 }
 
-impl<T> Entry<'_, T>
+impl<T> Cursor<'_, T>
 where
     T: Ord + Send + 'static,
 {
@@ -503,26 +503,26 @@ where
     }
 }
 
-impl<'a, T> Clone for Entry<'a, T> {
-    fn clone(&self) -> Entry<'a, T> {
-        Entry {
+impl<'a, T> Clone for Cursor<'a, T> {
+    fn clone(&self) -> Cursor<'a, T> {
+        Cursor {
             inner: self.inner.clone(),
         }
     }
 }
 
-impl<T> fmt::Debug for Entry<'_, T>
+impl<T> fmt::Debug for Cursor<'_, T>
 where
     T: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Entry")
+        f.debug_struct("Cursor")
             .field("value", self.value())
             .finish()
     }
 }
 
-impl<T> Deref for Entry<'_, T> {
+impl<T> Deref for Cursor<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -558,10 +558,10 @@ impl<'a, T> Iterator for Iter<'a, T>
 where
     T: Ord,
 {
-    type Item = Entry<'a, T>;
+    type Item = Cursor<'a, T>;
 
-    fn next(&mut self) -> Option<Entry<'a, T>> {
-        self.inner.next().map(Entry::new)
+    fn next(&mut self) -> Option<Cursor<'a, T>> {
+        self.inner.next().map(Cursor::new)
     }
 }
 
@@ -569,8 +569,8 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T>
 where
     T: Ord,
 {
-    fn next_back(&mut self) -> Option<Entry<'a, T>> {
-        self.inner.next_back().map(Entry::new)
+    fn next_back(&mut self) -> Option<Cursor<'a, T>> {
+        self.inner.next_back().map(Cursor::new)
     }
 }
 
@@ -596,10 +596,10 @@ where
     R: RangeBounds<Q>,
     Q: Ord + ?Sized,
 {
-    type Item = Entry<'a, T>;
+    type Item = Cursor<'a, T>;
 
-    fn next(&mut self) -> Option<Entry<'a, T>> {
-        self.inner.next().map(Entry::new)
+    fn next(&mut self) -> Option<Cursor<'a, T>> {
+        self.inner.next().map(Cursor::new)
     }
 }
 
@@ -609,8 +609,8 @@ where
     R: RangeBounds<Q>,
     Q: Ord + ?Sized,
 {
-    fn next_back(&mut self) -> Option<Entry<'a, T>> {
-        self.inner.next_back().map(Entry::new)
+    fn next_back(&mut self) -> Option<Cursor<'a, T>> {
+        self.inner.next_back().map(Cursor::new)
     }
 }
 
