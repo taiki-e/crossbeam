@@ -44,6 +44,7 @@ use crate::select::{Operation, SelectHandle, Token};
 /// // Print the result of the computation.
 /// println!("{}", r.recv().unwrap());
 /// ```
+#[inline]
 pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
     let (s, r) = counter::new(flavors::list::Channel::new());
     let s = Sender {
@@ -107,6 +108,7 @@ pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
 /// thread::sleep(Duration::from_secs(1));
 /// assert_eq!(r.recv(), Ok(1));
 /// ```
+#[inline]
 pub fn bounded<T>(cap: usize) -> (Sender<T>, Receiver<T>) {
     if cap == 0 {
         let (s, r) = counter::new(flavors::zero::Channel::new());
@@ -174,6 +176,7 @@ pub fn bounded<T>(cap: usize) -> (Sender<T>, Receiver<T>) {
 /// assert!(eq(r.recv().unwrap(), start + ms(100)));
 /// assert!(eq(Instant::now(), start + ms(500)));
 /// ```
+#[inline]
 pub fn after(duration: Duration) -> Receiver<Instant> {
     match Instant::now().checked_add(duration) {
         Some(deadline) => Receiver {
@@ -225,6 +228,7 @@ pub fn after(duration: Duration) -> Receiver<Instant> {
 /// assert_eq!(r.recv().unwrap(), end);
 /// assert!(Instant::now() > start + ms(100));
 /// ```
+#[inline]
 pub fn at(when: Instant) -> Receiver<Instant> {
     Receiver {
         flavor: ReceiverFlavor::At(Arc::new(flavors::at::Channel::new_deadline(when))),
@@ -266,6 +270,7 @@ pub fn at(when: Instant) -> Receiver<Instant> {
 ///     recv(timeout) -> _ => println!("timed out"),
 /// }
 /// ```
+#[inline]
 pub fn never<T>() -> Receiver<T> {
     Receiver {
         flavor: ReceiverFlavor::Never(flavors::never::Channel::new()),
@@ -325,6 +330,7 @@ pub fn never<T>() -> Receiver<T> {
 /// assert!(eq(r.recv().unwrap(), start + ms(700)));
 /// assert!(eq(Instant::now(), start + ms(700)));
 /// ```
+#[inline]
 pub fn tick(duration: Duration) -> Receiver<Instant> {
     match Instant::now().checked_add(duration) {
         Some(delivery_time) => Receiver {
@@ -558,6 +564,7 @@ impl<T> Sender<T> {
     /// s.send(0).unwrap();
     /// assert!(!s.is_empty());
     /// ```
+    #[inline]
     pub fn is_empty(&self) -> bool {
         match &self.flavor {
             SenderFlavor::Array(chan) => chan.is_empty(),
@@ -581,6 +588,7 @@ impl<T> Sender<T> {
     /// s.send(0).unwrap();
     /// assert!(s.is_full());
     /// ```
+    #[inline]
     pub fn is_full(&self) -> bool {
         match &self.flavor {
             SenderFlavor::Array(chan) => chan.is_full(),
@@ -603,6 +611,7 @@ impl<T> Sender<T> {
     /// s.send(2).unwrap();
     /// assert_eq!(s.len(), 2);
     /// ```
+    #[inline]
     pub fn len(&self) -> usize {
         match &self.flavor {
             SenderFlavor::Array(chan) => chan.len(),
@@ -627,6 +636,7 @@ impl<T> Sender<T> {
     /// let (s, _) = bounded::<i32>(0);
     /// assert_eq!(s.capacity(), Some(0));
     /// ```
+    #[inline]
     pub fn capacity(&self) -> Option<usize> {
         match &self.flavor {
             SenderFlavor::Array(chan) => chan.capacity(),
@@ -650,6 +660,7 @@ impl<T> Sender<T> {
     /// let (s3, _) = unbounded();
     /// assert!(!s.same_channel(&s3));
     /// ```
+    #[inline]
     pub fn same_channel(&self, other: &Sender<T>) -> bool {
         match (&self.flavor, &other.flavor) {
             (SenderFlavor::Array(ref a), SenderFlavor::Array(ref b)) => a == b,
@@ -661,6 +672,7 @@ impl<T> Sender<T> {
 }
 
 impl<T> Drop for Sender<T> {
+    #[inline]
     fn drop(&mut self) {
         unsafe {
             match &self.flavor {
@@ -673,6 +685,7 @@ impl<T> Drop for Sender<T> {
 }
 
 impl<T> Clone for Sender<T> {
+    #[inline]
     fn clone(&self) -> Self {
         let flavor = match &self.flavor {
             SenderFlavor::Array(chan) => SenderFlavor::Array(chan.acquire()),
@@ -764,6 +777,7 @@ impl<T> Receiver<T> {
     /// assert_eq!(r.try_recv(), Ok(5));
     /// assert_eq!(r.try_recv(), Err(TryRecvError::Disconnected));
     /// ```
+    #[inline]
     pub fn try_recv(&self) -> Result<T, TryRecvError> {
         match &self.flavor {
             ReceiverFlavor::Array(chan) => chan.try_recv(),
@@ -817,6 +831,7 @@ impl<T> Receiver<T> {
     /// assert_eq!(r.recv(), Ok(5));
     /// assert_eq!(r.recv(), Err(RecvError));
     /// ```
+    #[inline]
     pub fn recv(&self) -> Result<T, RecvError> {
         match &self.flavor {
             ReceiverFlavor::Array(chan) => chan.recv(None),
@@ -882,6 +897,7 @@ impl<T> Receiver<T> {
     ///     Err(RecvTimeoutError::Disconnected),
     /// );
     /// ```
+    #[inline]
     pub fn recv_timeout(&self, timeout: Duration) -> Result<T, RecvTimeoutError> {
         match Instant::now().checked_add(timeout) {
             Some(deadline) => self.recv_deadline(deadline),
@@ -928,6 +944,7 @@ impl<T> Receiver<T> {
     ///     Err(RecvTimeoutError::Disconnected),
     /// );
     /// ```
+    #[inline]
     pub fn recv_deadline(&self, deadline: Instant) -> Result<T, RecvTimeoutError> {
         match &self.flavor {
             ReceiverFlavor::Array(chan) => chan.recv(Some(deadline)),
@@ -970,6 +987,7 @@ impl<T> Receiver<T> {
     /// s.send(0).unwrap();
     /// assert!(!r.is_empty());
     /// ```
+    #[inline]
     pub fn is_empty(&self) -> bool {
         match &self.flavor {
             ReceiverFlavor::Array(chan) => chan.is_empty(),
@@ -996,6 +1014,7 @@ impl<T> Receiver<T> {
     /// s.send(0).unwrap();
     /// assert!(r.is_full());
     /// ```
+    #[inline]
     pub fn is_full(&self) -> bool {
         match &self.flavor {
             ReceiverFlavor::Array(chan) => chan.is_full(),
@@ -1021,6 +1040,7 @@ impl<T> Receiver<T> {
     /// s.send(2).unwrap();
     /// assert_eq!(r.len(), 2);
     /// ```
+    #[inline]
     pub fn len(&self) -> usize {
         match &self.flavor {
             ReceiverFlavor::Array(chan) => chan.len(),
@@ -1048,6 +1068,7 @@ impl<T> Receiver<T> {
     /// let (_, r) = bounded::<i32>(0);
     /// assert_eq!(r.capacity(), Some(0));
     /// ```
+    #[inline]
     pub fn capacity(&self) -> Option<usize> {
         match &self.flavor {
             ReceiverFlavor::Array(chan) => chan.capacity(),
@@ -1142,6 +1163,7 @@ impl<T> Receiver<T> {
     /// let (_, r3) = unbounded();
     /// assert!(!r.same_channel(&r3));
     /// ```
+    #[inline]
     pub fn same_channel(&self, other: &Receiver<T>) -> bool {
         match (&self.flavor, &other.flavor) {
             (ReceiverFlavor::Array(a), ReceiverFlavor::Array(b)) => a == b,
@@ -1156,6 +1178,7 @@ impl<T> Receiver<T> {
 }
 
 impl<T> Drop for Receiver<T> {
+    #[inline]
     fn drop(&mut self) {
         unsafe {
             match &self.flavor {
@@ -1171,6 +1194,7 @@ impl<T> Drop for Receiver<T> {
 }
 
 impl<T> Clone for Receiver<T> {
+    #[inline]
     fn clone(&self) -> Self {
         let flavor = match &self.flavor {
             ReceiverFlavor::Array(chan) => ReceiverFlavor::Array(chan.acquire()),
@@ -1508,6 +1532,7 @@ impl<T> SelectHandle for Receiver<T> {
 }
 
 /// Writes a message into the channel.
+#[inline]
 pub(crate) unsafe fn write<T>(s: &Sender<T>, token: &mut Token, msg: T) -> Result<(), T> {
     match &s.flavor {
         SenderFlavor::Array(chan) => chan.write(token, msg),
@@ -1517,6 +1542,7 @@ pub(crate) unsafe fn write<T>(s: &Sender<T>, token: &mut Token, msg: T) -> Resul
 }
 
 /// Reads a message from the channel.
+#[inline]
 pub(crate) unsafe fn read<T>(r: &Receiver<T>, token: &mut Token) -> Result<T, ()> {
     match &r.flavor {
         ReceiverFlavor::Array(chan) => chan.read(token),

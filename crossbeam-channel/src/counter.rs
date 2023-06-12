@@ -21,6 +21,7 @@ struct Counter<C> {
 }
 
 /// Wraps a channel into the reference counter.
+#[inline]
 pub(crate) fn new<C>(chan: C) -> (Sender<C>, Receiver<C>) {
     let counter = Box::into_raw(Box::new(Counter {
         senders: AtomicUsize::new(1),
@@ -46,6 +47,7 @@ impl<C> Sender<C> {
     }
 
     /// Acquires another sender reference.
+    #[inline]
     pub(crate) fn acquire(&self) -> Sender<C> {
         let count = self.counter().senders.fetch_add(1, Ordering::Relaxed);
 
@@ -86,6 +88,7 @@ impl<C> ops::Deref for Sender<C> {
 }
 
 impl<C> PartialEq for Sender<C> {
+    #[inline]
     fn eq(&self, other: &Sender<C>) -> bool {
         self.counter == other.counter
     }
@@ -98,11 +101,13 @@ pub(crate) struct Receiver<C> {
 
 impl<C> Receiver<C> {
     /// Returns the internal `Counter`.
+    #[inline]
     fn counter(&self) -> &Counter<C> {
         unsafe { &*self.counter }
     }
 
     /// Acquires another receiver reference.
+    #[inline]
     pub(crate) fn acquire(&self) -> Receiver<C> {
         let count = self.counter().receivers.fetch_add(1, Ordering::Relaxed);
 
@@ -121,6 +126,7 @@ impl<C> Receiver<C> {
     /// Releases the receiver reference.
     ///
     /// Function `disconnect` will be called if this is the last receiver reference.
+    #[inline]
     pub(crate) unsafe fn release<F: FnOnce(&C) -> bool>(&self, disconnect: F) {
         if self.counter().receivers.fetch_sub(1, Ordering::AcqRel) == 1 {
             disconnect(&self.counter().chan);
@@ -135,12 +141,14 @@ impl<C> Receiver<C> {
 impl<C> ops::Deref for Receiver<C> {
     type Target = C;
 
+    #[inline]
     fn deref(&self) -> &C {
         &self.counter().chan
     }
 }
 
 impl<C> PartialEq for Receiver<C> {
+    #[inline]
     fn eq(&self, other: &Receiver<C>) -> bool {
         self.counter == other.counter
     }
