@@ -400,6 +400,7 @@ impl<T> Sender<T> {
     /// drop(r);
     /// assert_eq!(s.try_send(3), Err(TrySendError::Disconnected(3)));
     /// ```
+    #[inline]
     pub fn try_send(&self, msg: T) -> Result<(), TrySendError<T>> {
         match &self.flavor {
             SenderFlavor::Array(chan) => chan.try_send(msg),
@@ -436,6 +437,7 @@ impl<T> Sender<T> {
     /// assert_eq!(s.send(2), Ok(()));
     /// assert_eq!(s.send(3), Err(SendError(3)));
     /// ```
+    #[inline]
     pub fn send(&self, msg: T) -> Result<(), SendError<T>> {
         match &self.flavor {
             SenderFlavor::Array(chan) => chan.send(msg, None),
@@ -485,6 +487,7 @@ impl<T> Sender<T> {
     ///     Err(SendTimeoutError::Disconnected(3)),
     /// );
     /// ```
+    #[inline]
     pub fn send_timeout(&self, msg: T, timeout: Duration) -> Result<(), SendTimeoutError<T>> {
         match Instant::now().checked_add(timeout) {
             Some(deadline) => self.send_deadline(msg, deadline),
@@ -531,6 +534,7 @@ impl<T> Sender<T> {
     ///     Err(SendTimeoutError::Disconnected(3)),
     /// );
     /// ```
+    #[inline]
     pub fn send_deadline(&self, msg: T, deadline: Instant) -> Result<(), SendTimeoutError<T>> {
         match &self.flavor {
             SenderFlavor::Array(chan) => chan.send(msg, Some(deadline)),

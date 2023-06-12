@@ -40,6 +40,7 @@ pub(crate) struct Sender<C> {
 
 impl<C> Sender<C> {
     /// Returns the internal `Counter`.
+    #[inline]
     fn counter(&self) -> &Counter<C> {
         unsafe { &*self.counter }
     }
@@ -63,6 +64,7 @@ impl<C> Sender<C> {
     /// Releases the sender reference.
     ///
     /// Function `disconnect` will be called if this is the last sender reference.
+    #[inline]
     pub(crate) unsafe fn release<F: FnOnce(&C) -> bool>(&self, disconnect: F) {
         if self.counter().senders.fetch_sub(1, Ordering::AcqRel) == 1 {
             disconnect(&self.counter().chan);
@@ -77,6 +79,7 @@ impl<C> Sender<C> {
 impl<C> ops::Deref for Sender<C> {
     type Target = C;
 
+    #[inline]
     fn deref(&self) -> &C {
         &self.counter().chan
     }

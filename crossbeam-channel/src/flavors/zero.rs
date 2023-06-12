@@ -20,6 +20,7 @@ use crate::waker::Waker;
 pub(crate) struct ZeroToken(*mut ());
 
 impl Default for ZeroToken {
+    #[inline]
     fn default() -> Self {
         Self(ptr::null_mut())
     }
