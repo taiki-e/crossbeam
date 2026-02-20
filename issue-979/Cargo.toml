@@ -1,0 +1,17 @@
+[package]
+name = "repro"
+version = "0.1.0"
+edition = "2018"
+
+[features]
+array = []
+
+[dependencies]
+crossbeam-channel = { version = "0.5", path = "../../sources/crossbeam-rs/crossbeam/crossbeam-channel" }
+# crossbeam-channel = "=0.5.8"
+
+[profile.release]
+lto = "fat"
+# lto = "thin"
+opt-level = "z"
+panic = "abort"

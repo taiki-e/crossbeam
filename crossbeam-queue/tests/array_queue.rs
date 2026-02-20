@@ -159,7 +159,7 @@ fn spsc_ring_buffer() {
     const COUNT: usize = 100_000;
 
     let t = AtomicUsize::new(1);
-    let q = ArrayQueue::<usize>::new(3);
+    let q = ArrayQueue::<Box<usize>>::new(3);
     let v = (0..COUNT).map(|_| AtomicUsize::new(0)).collect::<Vec<_>>();
 
     scope(|scope| {
@@ -169,7 +169,7 @@ fn spsc_ring_buffer() {
 
                 _ => {
                     while let Some(n) = q.pop() {
-                        v[n].fetch_add(1, Ordering::SeqCst);
+                        v[*n].fetch_add(1, Ordering::SeqCst);
                     }
                 }
             }
@@ -177,8 +177,13 @@ fn spsc_ring_buffer() {
 
         scope.spawn(|_| {
             for i in 0..COUNT {
-                if let Some(n) = q.force_push(i) {
-                    v[n].fetch_add(1, Ordering::SeqCst);
+                if i % 2 == 0 {
+                    let mut i = Box::new(i);
+                    while let Err(x) = q.push(i) {
+                        i = x;
+                    }
+                } else if let Some(n) = q.force_push(Box::new(i)) {
+                    v[*n].fetch_add(1, Ordering::SeqCst);
                 }
             }
 
@@ -240,7 +245,7 @@ fn mpmc_ring_buffer() {
     const THREADS: usize = 4;
 
     let t = AtomicUsize::new(THREADS);
-    let q = ArrayQueue::<usize>::new(3);
+    let q = ArrayQueue::<Box<usize>>::new(3);
     let v = (0..COUNT).map(|_| AtomicUsize::new(0)).collect::<Vec<_>>();
 
     scope(|scope| {
@@ -251,7 +256,7 @@ fn mpmc_ring_buffer() {
 
                     _ => {
                         while let Some(n) = q.pop() {
-                            v[n].fetch_add(1, Ordering::SeqCst);
+                            v[*n].fetch_add(1, Ordering::SeqCst);
                         }
                     }
                 }
@@ -261,8 +266,13 @@ fn mpmc_ring_buffer() {
         for _ in 0..THREADS {
             scope.spawn(|_| {
                 for i in 0..COUNT {
-                    if let Some(n) = q.force_push(i) {
-                        v[n].fetch_add(1, Ordering::SeqCst);
+                    if i % 2 == 0 {
+                        let mut i = Box::new(i);
+                        while let Err(x) = q.push(i) {
+                            i = x;
+                        }
+                    } else if let Some(n) = q.force_push(Box::new(i)) {
+                        v[*n].fetch_add(1, Ordering::SeqCst);
                     }
                 }
 

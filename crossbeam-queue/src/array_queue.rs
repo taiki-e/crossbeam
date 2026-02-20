@@ -132,16 +132,16 @@ impl<T> ArrayQueue<T> {
         loop {
             // Deconstruct the tail.
             let index = tail & (self.one_lap - 1);
-            let lap = tail & !(self.one_lap - 1);
 
             let new_tail = if index + 1 < self.capacity() {
                 // Same lap, incremented index.
                 // Set to `{ lap: lap, index: index + 1 }`.
                 tail + 1
             } else {
+                let lap = tail & !(self.one_lap - 1);
                 // One lap forward, index wraps around to zero.
                 // Set to `{ lap: lap.wrapping_add(1), index: 0 }`.
-                lap.wrapping_add(self.one_lap)
+                lap.wrapping_add(self.one_lap) & !(self.one_lap - 1)
             };
 
             // Inspect the corresponding slot.
@@ -279,7 +279,6 @@ impl<T> ArrayQueue<T> {
         loop {
             // Deconstruct the head.
             let index = head & (self.one_lap - 1);
-            let lap = head & !(self.one_lap - 1);
 
             // Inspect the corresponding slot.
             debug_assert!(index < self.buffer.len());
@@ -293,9 +292,10 @@ impl<T> ArrayQueue<T> {
                     // Set to `{ lap: lap, index: index + 1 }`.
                     head + 1
                 } else {
+                    let lap = head & !(self.one_lap - 1);
                     // One lap forward, index wraps around to zero.
                     // Set to `{ lap: lap.wrapping_add(1), index: 0 }`.
-                    lap.wrapping_add(self.one_lap)
+                    lap.wrapping_add(self.one_lap) & !(self.one_lap - 1)
                 };
 
                 // Try moving the head.
@@ -508,9 +508,9 @@ impl<T> Iterator for IntoIter<T> {
     fn next(&mut self) -> Option<Self::Item> {
         let value = &mut self.value;
         let head = *value.head.get_mut();
-        if value.head.get_mut() != value.tail.get_mut() {
+        let tail = *value.tail.get_mut();
+        if head != tail {
             let index = head & (value.one_lap - 1);
-            let lap = head & !(value.one_lap - 1);
             // SAFETY: We have mutable access to this, so we can read without
             // worrying about concurrency. Furthermore, we know this is
             // initialized because it is the value pointed at by `value.head`
@@ -525,9 +525,10 @@ impl<T> Iterator for IntoIter<T> {
                 // Set to `{ lap: lap, index: index + 1 }`.
                 head + 1
             } else {
+                let lap = head & !(value.one_lap - 1);
                 // One lap forward, index wraps around to zero.
                 // Set to `{ lap: lap.wrapping_add(1), index: 0 }`.
-                lap.wrapping_add(value.one_lap)
+                lap.wrapping_add(value.one_lap) & !(value.one_lap - 1)
             };
             *value.head.get_mut() = new;
             Some(val)

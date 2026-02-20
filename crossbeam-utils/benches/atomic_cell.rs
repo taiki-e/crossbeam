@@ -53,11 +53,10 @@ fn concurrent_load_u8(b: &mut test::Bencher) {
             scope.spawn(|_| loop {
                 start.wait();
 
-                let mut sum = 0;
-                for _ in 0..STEPS {
-                    sum += a.load();
+                for i in 0..STEPS {
+                    a.store(test::black_box(i as _));
                 }
-                test::black_box(sum);
+                test::black_box(&a);
 
                 end.wait();
                 if exit.load() {
@@ -127,11 +126,10 @@ fn concurrent_load_usize(b: &mut test::Bencher) {
             scope.spawn(|_| loop {
                 start.wait();
 
-                let mut sum = 0;
-                for _ in 0..STEPS {
-                    sum += a.load();
+                for i in 0..STEPS {
+                    a.store(test::black_box(i));
                 }
-                test::black_box(sum);
+                test::black_box(&a);
 
                 end.wait();
                 if exit.load() {

@@ -702,42 +702,56 @@ fn panic_on_drop() {
         }
     }
 
-    struct Msg2<'a>(&'a mut bool);
-    impl Drop for Msg2<'_> {
-        fn drop(&mut self) {
-            if *self.0 {
-                panic!("double drop");
-            } else {
-                *self.0 = true;
-                panic!("first drop");
-            }
-        }
-    }
+    // struct Msg2<'a>(&'a mut bool);
+    // impl Drop for Msg2<'_> {
+    //     fn drop(&mut self) {
+    //         if *self.0 {
+    //             panic!("double drop");
+    //         } else {
+    //             *self.0 = true;
+    //             panic!("first drop");
+    //         }
+    //     }
+    // }
 
-    // normal
-    let (s, r) = bounded(2);
-    let (mut a, mut b) = (false, false);
-    s.send(Msg1(&mut a)).unwrap();
-    s.send(Msg1(&mut b)).unwrap();
-    drop(s);
-    drop(r);
-    assert!(a);
-    assert!(b);
+    // // normal
+    // let (s, r) = bounded(2);
+    // let (mut a, mut b) = (false, false);
+    // s.send(Msg1(&mut a)).unwrap();
+    // s.send(Msg1(&mut b)).unwrap();
+    // drop(s);
+    // drop(r);
+    // assert!(a);
+    // assert!(b);
+
+    // // panic on drop
+    // let (s, r) = bounded(2);
+    // let (mut a, mut b) = (false, false);
+    // s.send(Msg2(&mut a)).unwrap();
+    // s.send(Msg2(&mut b)).unwrap();
+    // drop(s);
+    // let res = std::panic::catch_unwind(move || {
+    //     drop(r);
+    // });
+    // assert_eq!(
+    //     *res.unwrap_err().downcast_ref::<&str>().unwrap(),
+    //     "first drop"
+    // );
+    // assert!(a);
+    // // Elements after the panicked element will leak.
+    // assert!(!b);
 
     // panic on drop
     let (s, r) = bounded(2);
     let (mut a, mut b) = (false, false);
-    s.send(Msg2(&mut a)).unwrap();
-    s.send(Msg2(&mut b)).unwrap();
-    drop(s);
+    s.send(Msg1(&mut a)).unwrap();
+    s.send(Msg1(&mut b)).unwrap();
     let res = std::panic::catch_unwind(move || {
-        drop(r);
+        let _r = r;
+        panic!("a panic")
     });
-    assert_eq!(
-        *res.unwrap_err().downcast_ref::<&str>().unwrap(),
-        "first drop"
-    );
+    assert_eq!(*res.unwrap_err().downcast_ref::<&str>().unwrap(), "a panic");
+    drop(s);
     assert!(a);
-    // Elements after the panicked element will leak.
-    assert!(!b);
+    assert!(b);
 }

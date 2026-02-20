@@ -149,7 +149,6 @@ impl<T> Channel<T> {
 
             // Deconstruct the tail.
             let index = tail & (self.mark_bit - 1);
-            let lap = tail & !(self.one_lap - 1);
 
             // Inspect the corresponding slot.
             debug_assert!(index < self.buffer.len());
@@ -163,9 +162,10 @@ impl<T> Channel<T> {
                     // Set to `{ lap: lap, mark: 0, index: index + 1 }`.
                     tail + 1
                 } else {
+                    let lap = tail & !(self.one_lap - 1);
                     // One lap forward, index wraps around to zero.
                     // Set to `{ lap: lap.wrapping_add(1), mark: 0, index: 0 }`.
-                    lap.wrapping_add(self.one_lap)
+                    lap.wrapping_add(self.one_lap) & !(self.one_lap - 1)
                 };
 
                 // Try moving the tail.
@@ -232,7 +232,6 @@ impl<T> Channel<T> {
         loop {
             // Deconstruct the head.
             let index = head & (self.mark_bit - 1);
-            let lap = head & !(self.one_lap - 1);
 
             // Inspect the corresponding slot.
             debug_assert!(index < self.buffer.len());
@@ -246,9 +245,10 @@ impl<T> Channel<T> {
                     // Set to `{ lap: lap, mark: 0, index: index + 1 }`.
                     head + 1
                 } else {
+                    let lap = head & !(self.one_lap - 1);
                     // One lap forward, index wraps around to zero.
                     // Set to `{ lap: lap.wrapping_add(1), mark: 0, index: 0 }`.
-                    lap.wrapping_add(self.one_lap)
+                    lap.wrapping_add(self.one_lap) & !(self.one_lap - 1)
                 };
 
                 // Try moving the head.
